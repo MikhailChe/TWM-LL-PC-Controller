@@ -1,22 +1,3 @@
-//-----------------------------------------------------------------------------------------
-//File Name:UniDAQ.h
-//Update date:2014/03/18 by Dan Huang
-//Support Language: Visual C++/Visual C.NET/Borland C++ Builder
-//UniDAQ SDK User Manual: http://ftp.icpdas.com/pub/cd/iocard/pci/napdos/pci/unidaq/manual/
-//-----------------------------------------------------------------------------------------
-#include "Windows.h"
-
-#ifndef EXPORTS
-#ifdef  __cplusplus
-	#define EXPORTS extern "C" __declspec (dllimport)
-#else
-	#define EXPORTS __declspec (dllimport)
-#endif 
-#endif
-
-#ifndef __Uni_DAQ_HEADER__
-#define __Uni_DAQ_HEADER__
-
 #define MAX_BOARD_NUMBER 32
 #define MAX_EVENT_NUMBER 20
 #define MAX_AO_CHANNEL   32
@@ -337,6 +318,3 @@ EXPORTS WORD  CALLBACK  Ixud_WriteAOCurrentH(WORD wBoardNo, WORD wChannel, DWORD
 EXPORTS WORD  CALLBACK  Ixud_StartAOVoltage(WORD wBoardNo, WORD wChannel,WORD wConfig, float fSamplingRate, DWORD dwDataCount,DWORD dwCycleNum, float fValue[]);
 EXPORTS WORD  CALLBACK  Ixud_StartAOVoltageH(WORD wBoardNo, WORD wChannel,WORD wConfig, float fSamplingRate, DWORD dwDataCount,DWORD dwCycleNum, DWORD dwValue[]);
 EXPORTS WORD  CALLBACK  Ixud_StopAO(WORD wBoardNo, WORD wChannel);
-
-#endif // end define __Uni_DAQ_HEADER__
- 

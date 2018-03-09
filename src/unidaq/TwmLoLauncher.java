@@ -6,8 +6,7 @@ public class TwmLoLauncher {
 		try (UniDAQLib ADC = new UniDAQLib()) {
 			System.out.println("SUCCESS + " + ADC.getTotalBoards());
 
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
+		} catch (UniDaqException e) {
 			e.printStackTrace();
 		}
 	}
