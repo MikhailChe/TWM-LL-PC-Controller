@@ -61,12 +61,16 @@ public class UniDAQLib implements AutoCloseable {
 	 * @param channels
 	 * @param channelConfig
 	 * @param samplingRate
-	 * @param dataCount
+	 * @param dataCountPerChannel
 	 *            =0 for continuous mode (must call stopAI to stop);
 	 * @throws UniDaqException
 	 */
 	public void startAIScan(short boardNumber, short[] channels, short[] channelConfig, float samplingRate,
-			int dataCount) throws UniDaqException {
+			int dataCountPerChannel) throws UniDaqException {
+		if (boardNumber <= 0) {
+			throw new IllegalArgumentException(
+					"I don't believe this board event exist (boradNumber = " + boardNumber + ")");
+		}
 		if (channels.length != channelConfig.length) {
 			throw new IllegalArgumentException("Channel configuration is not specified for all channels");
 		}
@@ -75,10 +79,19 @@ public class UniDAQLib implements AutoCloseable {
 		}
 
 		short error = UniDaqLibrary.Ixud_StartAIScan(boardNumber, (short) channels.length, ShortBuffer.wrap(channels),
-				ShortBuffer.wrap(channelConfig), samplingRate, dataCount);
+				ShortBuffer.wrap(channelConfig), samplingRate, dataCountPerChannel);
 		if (error > 0) {
 			throw new UniDaqException(error);
 		}
+	}
+
+	public void startAIScan(int boardNumber, short[] channels, short[] channelConfig, float samplingRate,
+			int dataCountPerChannel) throws UniDaqException {
+		if (boardNumber >= Short.MAX_VALUE) {
+			throw new IllegalArgumentException(
+					"I don't believe this board event exist (boradNumber = " + boardNumber + ")");
+		}
+		startAIScan((short) boardNumber, channels, channelConfig, samplingRate, dataCountPerChannel);
 	}
 
 	public float[] getAIBuffer(short boardNumber, int dataCount) throws UniDaqException {
