@@ -1,14 +1,33 @@
 package starthere;
 
 import java.io.PrintStream;
+import java.util.concurrent.TimeUnit;
 
 import unidaq.ChannelConfig;
 import unidaq.UniDAQLib;
 import unidaq.UniDaqException;
+import unidaq.UniDaqLibrary;
 
 public class StartHere {
 
 	public static void main(String[] args) {
+		try (UniDAQLib DAC = new UniDAQLib()) {
+			DAC.configAO((short) 0, (short) 0, UniDaqLibrary.IXUD_AO_BI_5V);
+
+			for (int i = 0; i < 100; i++) {
+				DAC.writeAOVoltage((short) 0, (short) 0, (float) Math.sin(2.0 * 3.141592 * i / 100.0));
+				try {
+					TimeUnit.MILLISECONDS.sleep(10);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		} catch (UniDaqException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void main2(String[] args) {
 		final float experimentFreq = 5;
 		final int numPeriods = 2;
 		float[][] values = readOut(new short[] { 0, 1, 2, 3, 4, 5, 6, 7, 8 }, experimentFreq, numPeriods);

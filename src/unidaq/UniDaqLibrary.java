@@ -164,7 +164,7 @@ public class UniDaqLibrary implements Library {
 	public static final int PCIP16R16 = (int) 0xD61E39;
 	public static final int IXUD_AO_UNI_20V = (int) 4;
 	public static final int Ixud_ShareHandleErr = (int) 55;
-	public static final int IXUD_AO_BI_5V = (int) 1;
+	public static final short IXUD_AO_BI_5V = (short) 1;
 	public static final int PCID64 = (int) 0x2C90B8;
 	public static final int Ixud_IOErr = (int) 59;
 	public static final int Ixud_PnPDriverErr = (int) 2;

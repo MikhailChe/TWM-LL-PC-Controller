@@ -137,6 +137,28 @@ public class UniDAQLib implements AutoCloseable {
 		return bstat;
 	}
 
+	/**
+	 * 
+	 * @param boardNumber
+	 * @param channel
+	 * @param cfgCode
+	 *            IXUD_AO_BI_5V or IXUD_AO_BI_10V
+	 * @throws UniDaqException
+	 */
+	public void configAO(short boardNumber, short channel, short cfgCode) throws UniDaqException {
+		short error = UniDaqLibrary.Ixud_ConfigAO(boardNumber, channel, cfgCode);
+		if (error > 0) {
+			throw new UniDaqException(error);
+		}
+	}
+
+	public void writeAOVoltage(short boardNumber, short channel, float value) throws UniDaqException {
+		short error = UniDaqLibrary.Ixud_WriteAOVoltage(boardNumber, channel, value);
+		if (error > 0) {
+			throw new UniDaqException(error);
+		}
+	}
+
 	@Override
 	public void close() throws UniDaqException {
 		System.out.println("Closing driver");
