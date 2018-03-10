@@ -1,5 +1,10 @@
 package unidaq;
 
+import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+import java.nio.ShortBuffer;
+
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLibrary;
@@ -8,10 +13,6 @@ import com.sun.jna.PointerType;
 import com.sun.jna.ptr.FloatByReference;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.ShortByReference;
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-import java.nio.ShortBuffer;
 
 /**
  * JNA Wrapper for library <b>UniDaq</b><br>
@@ -85,7 +86,7 @@ public class UniDaqLibrary implements Library {
 	public static final int Ixud_InvalidSize = (int) 10;
 	public static final int PCI822 = (int) 0xDE3823;
 	public static final int IXUD_AO_I_0_20_MA = (int) 16;
-	public static final int IXUD_BI_1V25 = (int) 3;
+	public static final short IXUD_BI_1V25 = (short) 3;
 	public static final int Ixud_GetSysBufferErr = (int) 28;
 	public static final int PCITMC12 = (int) 0xDF2962;
 	public static final int Ixud_InstallIrqErr = (int) 25;
@@ -101,11 +102,11 @@ public class UniDaqLibrary implements Library {
 	public static final int IXUD_BI_0V3125 = (int) 5;
 	public static final int Ixud_AcqireSpinLock = (int) 47;
 	public static final int PEXD56 = (int) 0x800140;
-	public static final int IXUD_BI_5V = (int) 1;
+	public static final short IXUD_BI_5V = (short) 1;
 	public static final int IXUD_BI_20V = (int) 23;
 	public static final int Ixud_FifoResetErr = (int) 44;
 	public static final int Ixud_InvalidBlock = (int) 45;
-	public static final int IXUD_BI_2V5 = (int) 2;
+	public static final short IXUD_BI_2V5 = (short) 2;
 	public static final int Ixud_WriteEEPErr = (int) 57;
 	public static final int PIOD96 = (int) 0x800110;
 	public static final int PISOP8R8 = (int) 0x800830;
@@ -149,7 +150,7 @@ public class UniDaqLibrary implements Library {
 	public static final int Ixud_InvalidAddr = (int) 46;
 	public static final int MULTIPROCESSOR = (int) 1;
 	public static final int PISO725 = (int) 0x8008FF;
-	public static final int IXUD_BI_10V = (int) 0;
+	public static final short IXUD_BI_10V = (short) 0;
 	public static final int MAX_EVENT_NUMBER = (int) 20;
 	public static final int IXUD_ANALOGTRIGGER_ABOVE = (int) 1;
 	public static final int PISOP32C32 = (int) 0x800820;

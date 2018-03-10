@@ -65,9 +65,18 @@ public class UniDAQLib implements AutoCloseable {
 	 *            =0 for continuous mode (must call stopAI to stop);
 	 * @throws UniDaqException
 	 */
-	public void startAIScan(short boardNumber, short[] channels, short[] channelConfig, float samplingRate,
+	private void startAIScan(short boardNumber, short[] channels, short[] channelConfig, float samplingRate,
 			int dataCountPerChannel) throws UniDaqException {
-		if (boardNumber <= 0) {
+		short error = UniDaqLibrary.Ixud_StartAIScan(boardNumber, (short) channels.length, ShortBuffer.wrap(channels),
+				ShortBuffer.wrap(channelConfig), samplingRate, dataCountPerChannel);
+		if (error > 0) {
+			throw new UniDaqException(error);
+		}
+	}
+
+	public void startAIScan(int boardNumber, short[] channels, ChannelConfig[] channelConfig, float samplingRate,
+			int dataCountPerChannel) throws UniDaqException {
+		if (boardNumber < 0) {
 			throw new IllegalArgumentException(
 					"I don't believe this board event exist (boradNumber = " + boardNumber + ")");
 		}
@@ -77,21 +86,15 @@ public class UniDAQLib implements AutoCloseable {
 		if (channels.length >= Short.MAX_VALUE) {
 			throw new IllegalArgumentException("Cannot handle that much channels");
 		}
-
-		short error = UniDaqLibrary.Ixud_StartAIScan(boardNumber, (short) channels.length, ShortBuffer.wrap(channels),
-				ShortBuffer.wrap(channelConfig), samplingRate, dataCountPerChannel);
-		if (error > 0) {
-			throw new UniDaqException(error);
-		}
-	}
-
-	public void startAIScan(int boardNumber, short[] channels, short[] channelConfig, float samplingRate,
-			int dataCountPerChannel) throws UniDaqException {
 		if (boardNumber >= Short.MAX_VALUE) {
 			throw new IllegalArgumentException(
 					"I don't believe this board event exist (boradNumber = " + boardNumber + ")");
 		}
-		startAIScan((short) boardNumber, channels, channelConfig, samplingRate, dataCountPerChannel);
+		short[] config = new short[channelConfig.length];
+		for (int i = 0; i < channelConfig.length; i++) {
+			config[i] = channelConfig[i].getConfigValue();
+		}
+		startAIScan((short) boardNumber, channels, config, samplingRate, dataCountPerChannel);
 	}
 
 	public float[] getAIBuffer(short boardNumber, int dataCount) throws UniDaqException {
