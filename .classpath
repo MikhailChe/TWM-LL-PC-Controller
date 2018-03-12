@@ -11,6 +11,11 @@
 			<attribute name="javadoc_location" value="http://java-native-access.github.io/jna/4.5.1/javadoc/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="lib/rxtx-2.1-7-bins-r2/RXTXcomm.jar" sourcepath="lib/rxtx-2.1-7-bins-r2/rxtx-2.1-7r2.zip">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="TWM_LL_ADC_PC/lib/rxtx-2.1-7-bins-r2/Windows/i368-mingw32"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/UniDAQ">
 		<attributes>
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="C:/ICPDAS/UniDAQ/driver/DLL/x64"/>
