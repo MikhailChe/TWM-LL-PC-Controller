@@ -1,5 +1,9 @@
 package starthere;
 
+import static java.lang.Math.PI;
+import static java.lang.System.currentTimeMillis;
+
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.concurrent.TimeUnit;
 
@@ -10,18 +14,27 @@ import unidaq.UniDaqLibrary;
 
 public class StartHere {
 
-	public static void main(String[] args) {
-		try (UniDAQLib DAC = new UniDAQLib()) {
-			DAC.configAO((short) 0, (short) 0, UniDaqLibrary.IXUD_AO_BI_5V);
+	public static void main(String[] args) throws IOException {
+		try (UniDAQLib board = UniDAQLib.instance()) {
+			UniDAQLib.DAC DAC = board.getDAC(0);
+			DAC.configAO((short) 0, UniDaqLibrary.IXUD_AO_BI_5V);
+			while (System.in.available() > 0) {
+				System.in.read();
+			}
 
-			for (int i = 0; i < 100; i++) {
-				DAC.writeAOVoltage((short) 0, (short) 0, (float) Math.sin(2.0 * 3.141592 * i / 100.0));
+			long startTime = currentTimeMillis();
+			while (true) {
+				DAC.writeAOVoltage(0, .5 + Math.sin(2.0 * PI * (currentTimeMillis() - startTime) / 1000.0) * 0.5);
 				try {
-					TimeUnit.MILLISECONDS.sleep(10);
+					TimeUnit.MILLISECONDS.sleep(1);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
+				if (System.in.available() > 0) {
+					break;
+				}
 			}
+			DAC.writeAOVoltage(0, 0);
 		} catch (UniDaqException e) {
 			e.printStackTrace();
 		}
@@ -47,21 +60,89 @@ public class StartHere {
 		}
 	}
 
+	@FunctionalInterface
+	interface TriFunction<A, B, O> {
+		O apply(O o, A a, B b);
+	}
+
+	public void controlLoop() {
+		try {
+			while (System.in.available() > 0) {
+				System.in.read();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		try (UniDAQLib board = UniDAQLib.instance()) {
+			UniDAQLib.ADC ADC = board.getADC(0);
+			UniDAQLib.DAC DAC = board.getDAC(0);
+
+			try {
+				ADC.startAIScan(new short[] { 0, 2, 4, 6 }, new ChannelConfig[] { ChannelConfig.BI_10V,
+						ChannelConfig.BI_10V, ChannelConfig.BI_10V, ChannelConfig.BI_10V }, 200_000);
+			} catch (UniDaqException e1) {
+				e1.printStackTrace();
+				return;
+			}
+			final double P_K = 100;
+			final double SETTED_VALUE = 1;
+			final double FILTER_VALUE = 0.5;
+			double filtered = 0;
+
+			TriFunction<Double, Double, Double> clipper = (o, min, max) -> Math.max(Math.min(o, max), min);
+
+			try {
+				while (true) {
+					double val = ADC.getAIBuffer(4)[0]; // TODO: parameter means number of channels
+
+					double error = SETTED_VALUE - val;
+
+					double force = error * P_K;
+
+					filtered = filtered * FILTER_VALUE + force * (1 - FILTER_VALUE);
+
+					filtered = clipper.apply(filtered, 0.0, 5.0);
+
+					DAC.writeAOVoltage(0, force);
+
+					try {
+						if (System.in.available() > 0) {
+							break;
+						}
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			} catch (UniDaqException e) {
+				e.printStackTrace();
+			} finally {
+				try {
+					DAC.writeAOVoltage(0, 0);
+				} catch (UniDaqException e) {
+				}
+				ADC.stopAI();
+			}
+		} catch (UniDaqException e2) {
+			e2.printStackTrace();
+		}
+	}
+
 	public static float[][] readOut(final short channels[], final float experimentFrequency, final int numPeriods) {
 		final int NUM_CHANNELS = channels.length;
 		final float sampleFrequency = (experimentFrequency * 1000) * NUM_CHANNELS;
 		final int samplesPerChannel = 1000 * numPeriods;
 		float[][] vals = new float[samplesPerChannel][NUM_CHANNELS];
-		try (UniDAQLib ADC = new UniDAQLib()) {
-			System.out.println("SUCCESS + " + ADC.getTotalBoards());
+		try (UniDAQLib board = UniDAQLib.instance()) {
+			UniDAQLib.ADC ADC = board.getADC(0);
+			System.out.println("SUCCESS + " + board.getTotalBoards());
 			ChannelConfig[] configuration = new ChannelConfig[NUM_CHANNELS];
 			for (int i = 0; i < configuration.length; i++) {
 				configuration[i] = ChannelConfig.BI_10V;
 			}
 
-			ADC.startAIScan(0, channels, configuration, sampleFrequency, samplesPerChannel);
-			float[] buffer = ADC.getAIBuffer((short) 0, samplesPerChannel * NUM_CHANNELS);
-			ADC.stopAI((short) 0);
+			ADC.startAIScan(channels, configuration, sampleFrequency, samplesPerChannel);
+			float[] buffer = ADC.getAIBuffer(samplesPerChannel * NUM_CHANNELS);
+			ADC.stopAI();
 			for (int j = 0; j < samplesPerChannel; j++) {
 				for (int i = 0; i < NUM_CHANNELS; i++) {
 					int index = j * NUM_CHANNELS + i;
