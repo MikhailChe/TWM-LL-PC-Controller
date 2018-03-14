@@ -28,6 +28,7 @@ public class UniDAQLib implements AutoCloseable {
 
 		ADC(int boardNumber) {
 			this.boardNumber = (short) boardNumber;
+			configAI(0, (short) 1);
 		}
 
 		public void configAI(int bufferSize, short cardType) {
@@ -125,9 +126,9 @@ public class UniDAQLib implements AutoCloseable {
 			}
 		}
 
-		class BufferStatus {
-			short bufferStatus;
-			int dataCount;
+		public class BufferStatus {
+			public short bufferStatus;
+			public int dataCount;
 		}
 
 		public BufferStatus getBufferStatus() throws UniDaqException {

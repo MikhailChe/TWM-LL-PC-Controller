@@ -1,43 +1,19 @@
 package starthere;
 
-import static java.lang.Math.PI;
-import static java.lang.System.currentTimeMillis;
 import static java.lang.System.out;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.concurrent.TimeUnit;
 
 import unidaq.ChannelConfig;
 import unidaq.UniDAQLib;
 import unidaq.UniDaqException;
+import unidaq.UniDaqLibrary;
 
 public class StartHere {
 
 	public static void main(String[] args) throws IOException {
 		controlLoop();
-		try (UniDAQLib board = UniDAQLib.instance()) {
-			UniDAQLib.DAC DAC = board.getDAC(0);
-			while (System.in.available() > 0) {
-				System.in.read();
-			}
-
-			long startTime = currentTimeMillis();
-			while (true) {
-				DAC.writeAOVoltage(.5 + Math.sin(2.0 * PI * (currentTimeMillis() - startTime) / 1000.0) * 0.5);
-				try {
-					TimeUnit.MILLISECONDS.sleep(1);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				if (System.in.available() > 0) {
-					break;
-				}
-			}
-			DAC.writeAOVoltage(0);
-		} catch (UniDaqException e) {
-			e.printStackTrace();
-		}
 	}
 
 	/**
@@ -80,38 +56,54 @@ public class StartHere {
 			UniDAQLib.ADC ADC = board.getADC(0);
 			UniDAQLib.DAC DAC = board.getDAC(0);
 			short[] channels = { 0, 2, 4, 6 };
-			try {
-				ADC.startAIScan(channels, new ChannelConfig[] { ChannelConfig.BI_10V, ChannelConfig.BI_10V,
-						ChannelConfig.BI_10V, ChannelConfig.BI_10V }, 1_000);
-			} catch (UniDaqException e1) {
-				e1.printStackTrace();
-				return;
-			}
-			final double P_K = 100;
-			final double SETTED_VALUE = 1;
-			final double FILTER_VALUE = 0.5;
+			short[] config = { UniDaqLibrary.IXUD_BI_10V, UniDaqLibrary.IXUD_BI_10V, UniDaqLibrary.IXUD_BI_10V,
+					UniDaqLibrary.IXUD_BI_10V };
+
+			final double P_K = 5;
+			final double I_K = .1 * P_K;
+			final double SETTED_VALUE = 1.5;
+			final double FILTER_VALUE = 0.95;
 			double filtered = 0;
 
 			TriFunction<Double, Double, Double> clipper = (o, min, max) -> Math.max(Math.min(o, max), min);
 
 			final int temperatureChanel = 1;
 			try {
+				// DAC.writeAOVoltage(4.9);
+				long measurements = System.currentTimeMillis();
+				double integral = 0;
 				while (true) {
-					double val = ADC.getAIBuffer(channels.length)[temperatureChanel]; // TODO: parameter means number of
-																						// channels
+					double dt = (System.currentTimeMillis() - measurements) / 1000.0;
+					measurements = System.currentTimeMillis();
+					if (dt <= 0.001) {
+						dt = 0.001;
+					}
+
+					float[] inputValues = ADC.pollingAIScan(channels, config, 1);
+					double val = inputValues[temperatureChanel];
 
 					double error = SETTED_VALUE - val;
 
-					double force = error * P_K;
+					integral += error * I_K * dt;
+					if (integral > 4) {
+						integral = 4;
+					} else if (integral < -4) {
+						integral = -4;
+					}
+
+					double force = error * P_K + integral;
 
 					filtered = filtered * FILTER_VALUE + force * (1 - FILTER_VALUE);
 
-					filtered = clipper.apply(filtered, 0.0, 5.0);
+					filtered = clipper.apply(filtered, 0.0, 4.5);
+					out.printf("val = %10f\terror = %10f\tforce = %10f\tfilt = %10f%n", val, error, force, filtered);
+					// for (int i = 0; i < inputValues.length; i++) {
+					// out.printf("%12f", inputValues[i]);
+					// }
+					// out.printf("%n");
 
-					DAC.writeAOVoltage(force);
-
-					out.printf("val = %10f\terror = %10f\tforce = %10f\tfilt = %10f", val, error, force, filtered);
-
+					DAC.writeAOVoltage(filtered);
+					// DAC.writeAOVoltage(0);
 					try {
 						if (System.in.available() > 0) {
 							break;
@@ -128,7 +120,7 @@ public class StartHere {
 				} catch (UniDaqException e) {
 					e.printStackTrace();
 				}
-				ADC.stopAI();
+				// ADC.stopAI();
 			}
 		} catch (UniDaqException e2) {
 			e2.printStackTrace();
