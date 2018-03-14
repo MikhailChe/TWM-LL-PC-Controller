@@ -2,6 +2,7 @@ package starthere;
 
 import static java.lang.Math.PI;
 import static java.lang.System.currentTimeMillis;
+import static java.lang.System.out;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -78,10 +79,10 @@ public class StartHere {
 		try (UniDAQLib board = UniDAQLib.instance()) {
 			UniDAQLib.ADC ADC = board.getADC(0);
 			UniDAQLib.DAC DAC = board.getDAC(0);
-
+			short[] channels = { 0, 2, 4, 6 };
 			try {
-				ADC.startAIScan(new short[] { 0, 2, 4, 6 }, new ChannelConfig[] { ChannelConfig.BI_10V,
-						ChannelConfig.BI_10V, ChannelConfig.BI_10V, ChannelConfig.BI_10V }, 200_000);
+				ADC.startAIScan(channels, new ChannelConfig[] { ChannelConfig.BI_10V, ChannelConfig.BI_10V,
+						ChannelConfig.BI_10V, ChannelConfig.BI_10V }, 1_000);
 			} catch (UniDaqException e1) {
 				e1.printStackTrace();
 				return;
@@ -96,7 +97,8 @@ public class StartHere {
 			final int temperatureChanel = 1;
 			try {
 				while (true) {
-					double val = ADC.getAIBuffer(4)[temperatureChanel]; // TODO: parameter means number of channels
+					double val = ADC.getAIBuffer(channels.length)[temperatureChanel]; // TODO: parameter means number of
+																						// channels
 
 					double error = SETTED_VALUE - val;
 
@@ -107,6 +109,8 @@ public class StartHere {
 					filtered = clipper.apply(filtered, 0.0, 5.0);
 
 					DAC.writeAOVoltage(force);
+
+					out.printf("val = %10f\terror = %10f\tforce = %10f\tfilt = %10f", val, error, force, filtered);
 
 					try {
 						if (System.in.available() > 0) {
