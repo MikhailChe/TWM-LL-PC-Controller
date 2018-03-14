@@ -1109,7 +1109,7 @@ public class UniDaqLibrary implements Library {
 		public UCHAR() {
 			super();
 		}
-	};
+	}
 
 	public static class PVOID extends PointerType {
 		public PVOID(Pointer address) {
@@ -1119,7 +1119,7 @@ public class UniDaqLibrary implements Library {
 		public PVOID() {
 			super();
 		}
-	};
+	}
 
 	public static class HANDLE extends PointerType {
 		public HANDLE(Pointer address) {
@@ -1129,5 +1129,5 @@ public class UniDaqLibrary implements Library {
 		public HANDLE() {
 			super();
 		}
-	};
+	}
 }

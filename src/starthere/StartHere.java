@@ -10,21 +10,20 @@ import java.util.concurrent.TimeUnit;
 import unidaq.ChannelConfig;
 import unidaq.UniDAQLib;
 import unidaq.UniDaqException;
-import unidaq.UniDaqLibrary;
 
 public class StartHere {
 
 	public static void main(String[] args) throws IOException {
+		controlLoop();
 		try (UniDAQLib board = UniDAQLib.instance()) {
 			UniDAQLib.DAC DAC = board.getDAC(0);
-			DAC.configAO((short) 0, UniDaqLibrary.IXUD_AO_BI_5V);
 			while (System.in.available() > 0) {
 				System.in.read();
 			}
 
 			long startTime = currentTimeMillis();
 			while (true) {
-				DAC.writeAOVoltage(0, .5 + Math.sin(2.0 * PI * (currentTimeMillis() - startTime) / 1000.0) * 0.5);
+				DAC.writeAOVoltage(.5 + Math.sin(2.0 * PI * (currentTimeMillis() - startTime) / 1000.0) * 0.5);
 				try {
 					TimeUnit.MILLISECONDS.sleep(1);
 				} catch (InterruptedException e) {
@@ -34,12 +33,15 @@ public class StartHere {
 					break;
 				}
 			}
-			DAC.writeAOVoltage(0, 0);
+			DAC.writeAOVoltage(0);
 		} catch (UniDaqException e) {
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * @param args
+	 */
 	public static void main2(String[] args) {
 		final float experimentFreq = 5;
 		final int numPeriods = 2;
@@ -65,7 +67,7 @@ public class StartHere {
 		O apply(O o, A a, B b);
 	}
 
-	public void controlLoop() {
+	public static void controlLoop() {
 		try {
 			while (System.in.available() > 0) {
 				System.in.read();
@@ -91,9 +93,10 @@ public class StartHere {
 
 			TriFunction<Double, Double, Double> clipper = (o, min, max) -> Math.max(Math.min(o, max), min);
 
+			final int temperatureChanel = 1;
 			try {
 				while (true) {
-					double val = ADC.getAIBuffer(4)[0]; // TODO: parameter means number of channels
+					double val = ADC.getAIBuffer(4)[temperatureChanel]; // TODO: parameter means number of channels
 
 					double error = SETTED_VALUE - val;
 
@@ -103,7 +106,7 @@ public class StartHere {
 
 					filtered = clipper.apply(filtered, 0.0, 5.0);
 
-					DAC.writeAOVoltage(0, force);
+					DAC.writeAOVoltage(force);
 
 					try {
 						if (System.in.available() > 0) {
@@ -117,8 +120,9 @@ public class StartHere {
 				e.printStackTrace();
 			} finally {
 				try {
-					DAC.writeAOVoltage(0, 0);
+					DAC.writeAOVoltage(0);
 				} catch (UniDaqException e) {
+					e.printStackTrace();
 				}
 				ADC.stopAI();
 			}

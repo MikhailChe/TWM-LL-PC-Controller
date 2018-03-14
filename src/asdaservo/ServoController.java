@@ -51,46 +51,43 @@ public class ServoController {
 			out.println("Opening serial port COM1");
 			SerialPort comport = connect(portName);
 
-			InputStream is = null;
-			OutputStream os = null;
-			try {
-				is = comport.getInputStream();
-				os = comport.getOutputStream();
-			} catch (IOException e) {
-				e.printStackTrace();
-				comport.close();
-				return;
-			}
-			out.println("Opened serial port and streams");
+			try (InputStream is = comport.getInputStream(); OutputStream os = comport.getOutputStream();) {
+				out.println("Opened serial port and streams");
 
-			ServoController servo = new ServoController();
+				ServoController servo = new ServoController();
 
-			out.println("Starting servo drive...");
+				out.println("Starting servo drive...");
 
-			servo.startStop(os, is, true);
-			out.println("DONE\r\n");
-
-			try {
-				TimeUnit.SECONDS.sleep(5);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-
-			for (int i = 1; i < 7; i++) {
-				out.println("Writing " + i + "Hz...");
-				servo.writeSpeed(os, is, i);
+				servo.startStop(os, is, true);
 				out.println("DONE\r\n");
+
 				try {
 					TimeUnit.SECONDS.sleep(5);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
-			}
-			out.println("Stopping servo drive...");
-			servo.startStop(os, is, false);
-			out.println("DONE\r\n");
 
-			comport.close();
+				for (int i = 1; i < 7; i++) {
+					out.println("Writing " + i + "Hz...");
+					servo.writeSpeed(os, is, i);
+					out.println("DONE\r\n");
+					try {
+						TimeUnit.SECONDS.sleep(5);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				out.println("Stopping servo drive...");
+				servo.startStop(os, is, false);
+				out.println("DONE\r\n");
+			} catch (IOException e) {
+				e.printStackTrace();
+				comport.close();
+				return;
+			} finally {
+
+				comport.close();
+			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

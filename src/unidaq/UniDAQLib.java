@@ -23,10 +23,10 @@ public class UniDAQLib implements AutoCloseable {
 		return new ADC(boardNumber);
 	}
 
-	public static class ADC {
+	public class ADC {
 		private short boardNumber;
 
-		private ADC(int boardNumber) {
+		ADC(int boardNumber) {
 			this.boardNumber = (short) boardNumber;
 		}
 
@@ -167,13 +167,13 @@ public class UniDAQLib implements AutoCloseable {
 		}
 
 		System.out.println("Initializing driver");
-		ShortBuffer totalBoards = ShortBuffer.allocate(1);
-		error = UniDaqLibrary.Ixud_DriverInit(totalBoards);
-		System.out.println("Total number of boards: " + totalBoards.get(0));
+		ShortBuffer totalBoards1 = ShortBuffer.allocate(1);
+		error = UniDaqLibrary.Ixud_DriverInit(totalBoards1);
+		System.out.println("Total number of boards: " + totalBoards1.get(0));
 		if (error > 0) {
 			throw new UniDaqException(error);
 		}
-		this.totalBoards = totalBoards.get(0);
+		this.totalBoards = totalBoards1.get(0);
 	}
 
 	public DAC getDAC(int boardNumber) {
@@ -187,11 +187,16 @@ public class UniDAQLib implements AutoCloseable {
 		return new DAC(boardNumber);
 	}
 
-	public static class DAC {
+	public class DAC {
 		private short boardNumber;
 
-		private DAC(int boardNumber) {
+		DAC(int boardNumber) {
 			this.boardNumber = (short) boardNumber;
+			try {
+				configAO((short) 0, UniDaqLibrary.IXUD_AO_BI_5V);
+			} catch (UniDaqException e) {
+				e.printStackTrace();
+			}
 		}
 
 		/**
@@ -202,22 +207,22 @@ public class UniDAQLib implements AutoCloseable {
 		 *            IXUD_AO_BI_5V or IXUD_AO_BI_10V
 		 * @throws UniDaqException
 		 */
-		public void configAO(short channel, short cfgCode) throws UniDaqException {
+		private void configAO(short channel, short cfgCode) throws UniDaqException {
 			short error = UniDaqLibrary.Ixud_ConfigAO(boardNumber, channel, cfgCode);
 			if (error > 0) {
 				throw new UniDaqException(error);
 			}
 		}
 
-		private void writeAOVoltage_LL(short channel, float value) throws UniDaqException {
-			short error = UniDaqLibrary.Ixud_WriteAOVoltage(boardNumber, channel, value);
+		private void writeAOVoltage_LL(float value) throws UniDaqException {
+			short error = UniDaqLibrary.Ixud_WriteAOVoltage(boardNumber, (short) 0, value);
 			if (error > 0) {
 				throw new UniDaqException(error);
 			}
 		}
 
-		public void writeAOVoltage(int channel, double value) throws UniDaqException {
-			writeAOVoltage_LL((short) channel, (float) value);
+		public void writeAOVoltage(double value) throws UniDaqException {
+			writeAOVoltage_LL((float) value);
 
 		}
 	}

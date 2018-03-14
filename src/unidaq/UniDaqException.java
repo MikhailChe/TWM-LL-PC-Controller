@@ -226,6 +226,7 @@ enum UniDaqReturnValue {
 		}
 	}
 
+	@Override
 	public String toString() {
 		return this.codename;
 	}

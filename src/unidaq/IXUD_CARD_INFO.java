@@ -1,9 +1,11 @@
 package unidaq;
 
-import com.sun.jna.Pointer;
-import com.sun.jna.Structure;
 import java.util.Arrays;
 import java.util.List;
+
+import com.sun.jna.Pointer;
+import com.sun.jna.Structure;
+
 import unidaq.UniDaqLibrary.UCHAR;
 
 /**
@@ -61,6 +63,7 @@ public class IXUD_CARD_INFO extends Structure {
 		super();
 	}
 
+	@Override
 	protected List<String> getFieldOrder() {
 		return Arrays.asList("dwSize", "dwModelNo", "CardID", "wSingleEnded", "wAIOResolution", "wAIChannels",
 				"wAOChannels", "wDIPorts", "wDOPorts", "wDIOPorts", "wDIOPortWidth", "wCounterChannels", "wMemorySize",
@@ -73,9 +76,9 @@ public class IXUD_CARD_INFO extends Structure {
 
 	public static class ByReference extends IXUD_CARD_INFO implements Structure.ByReference {
 
-	};
+	}
 
 	public static class ByValue extends IXUD_CARD_INFO implements Structure.ByValue {
 
-	};
+	}
 }
