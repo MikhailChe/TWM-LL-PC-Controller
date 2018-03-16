@@ -2,8 +2,6 @@ package regulator;
 
 final public class SlopeLimiter {
 
-	final double limitPerUnitTime;
-
 	public SlopeLimiter(double limitPerUnitTime, double initialValue) {
 		if (Double.isFinite(limitPerUnitTime)) {
 			this.limitPerUnitTime = limitPerUnitTime;
@@ -17,12 +15,12 @@ final public class SlopeLimiter {
 		}
 	}
 
+	final private double limitPerUnitTime;
+
 	private volatile double oldValue = Double.NaN;
 	private volatile long lastTime = Long.MIN_VALUE;
 
-	private volatile double limitedValue = 0;
-
-	public final double limit(final double value, final long CURRENTTIME) {
+	final public double limit(final double value, final long CURRENTTIME) {
 
 		if (lastTime == Long.MIN_VALUE) {
 			lastTime = CURRENTTIME;
@@ -36,31 +34,32 @@ final public class SlopeLimiter {
 	}
 
 	final private double limit(final double value, final double dt) {
-		if (dt <= 0.00001) {
-			throw new IllegalArgumentException("Delta time is impossibly small");
+		if (!Double.isFinite(dt) || dt <= 0.00001) {
+			throw new IllegalArgumentException("Delta time is impossibly small or nan = " + dt);
 		}
 
-		if (Double.isNaN(oldValue)) {
+		if (!Double.isInfinite(value)) {
+			throw new IllegalArgumentException("Value is not finitie (=" + value);
+		}
+
+		if (!Double.isFinite(oldValue)) {
 			oldValue = value;
-		}
-
-		if (Math.abs(value - oldValue) / dt > limitPerUnitTime) {
-			double sign = Math.signum(value - oldValue);
-			limitedValue = oldValue + sign * dt * limitPerUnitTime;
 		} else {
-			limitedValue = value;
+			if (Math.abs(value - oldValue) / dt > limitPerUnitTime) {
+				double sign = Math.signum(value - oldValue);
+				oldValue = oldValue + sign * dt * limitPerUnitTime;
+			} else {
+				oldValue = value;
+			}
 		}
-		oldValue = limitedValue;
-		return limitedValue;
+		return oldValue;
 	}
 
-	public final double getValue() {
-		return this.limitedValue;
+	final public double getValue() {
+		return this.oldValue;
 	}
 
-	public void resetTiming() {
-		oldValue = Double.NaN;
-
+	final public void resetTiming() {
+		lastTime = Long.MIN_VALUE;
 	}
-
 }

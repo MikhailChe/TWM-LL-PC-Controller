@@ -1,11 +1,28 @@
 package regulator;
 
-public class PID {
-	final double P;
-	final double I;
-	final double D;
+final public class PID {
+	final private double P;
+	final private double I;
+	final private double D;
 
-	public PID(double P, double I, double D) {
+	/**
+	 * 
+	 * @param P
+	 *            Proportional coefficient of regulator. </br>
+	 *            Basically, it's a gain of input error.
+	 * @param I
+	 *            Integrating coefficient of regulator </br>
+	 *            It summs all the errors through time. So if you have an error of
+	 *            1, than in a second you'd have an integral of (1 times I)
+	 * @param D
+	 *            Differentiating coefficient of regulator </br>
+	 *            It prevents an error from changing too fast. If input error of
+	 *            regulator is changed, it tries to quickly minimize that change.
+	 *            For example, say you've got a temprature set and steady. Suddenly
+	 *            it's getting colder, so differential part will try to quickly
+	 *            compensate for that change.
+	 */
+	public PID(final double P, final double I, final double D) {
 		if (!Double.isFinite(P) || !Double.isFinite(I) || !Double.isFinite(D)) {
 			throw new IllegalArgumentException(String.format("Not a number: P=%.2f,I=%.2f,D=%.2f", P, I, D));
 		}
@@ -14,7 +31,7 @@ public class PID {
 		this.D = D * P;
 	}
 
-	public PID setProportionalBounds(double min, double max) {
+	final public PID setProportionalBounds(final double min, final double max) {
 		if (Double.isFinite(max) && Double.isFinite(min)) {
 			if (max < min)
 				throw new IllegalArgumentException("max < min");
@@ -24,7 +41,7 @@ public class PID {
 		return this;
 	}
 
-	public PID setIntegralBounds(double min, double max) {
+	final public PID setIntegralBounds(final double min, final double max) {
 		if (Double.isFinite(max) && Double.isFinite(min)) {
 			if (max < min)
 				throw new IllegalArgumentException("max < min");
@@ -34,7 +51,7 @@ public class PID {
 		return this;
 	}
 
-	public PID setDifferentialBounds(double min, double max) {
+	final public PID setDifferentialBounds(final double min, final double max) {
 		if (Double.isFinite(max) && Double.isFinite(min)) {
 			if (max < min)
 				throw new IllegalArgumentException("max < min");
@@ -44,37 +61,38 @@ public class PID {
 		return this;
 	}
 
-	volatile double proportionalMax = 1;
-	volatile double proportionalMin = -1;
+	volatile private double proportionalMax = 1;
+	volatile private double proportionalMin = -1;
 
-	volatile double integral = 0;
-	volatile double integralMax = 1;
-	volatile double integralMin = -1;
+	volatile private double integral = 0;
+	volatile private double integralMax = 1;
+	volatile private double integralMin = -1;
 
-	volatile double oldError = Double.NaN;
+	volatile private double oldError = Double.NaN;
 
-	volatile double differentialMax = 1;
-	volatile double differentialMin = -1;
+	volatile private double differentialMax = 1;
+	volatile private double differentialMin = -1;
 
-	private double lastRegulation = 0;
+	volatile private double lastRegulation = 0;
+	volatile private long lastTime = Long.MIN_VALUE;
 
-	long time = Long.MIN_VALUE;
+	final public double regulate(final double error, final long CURRENTTIME) {
 
-	public double regulate(final double error, final long TIME) {
-
-		if (time == Long.MIN_VALUE) {
-			time = TIME;
+		if (lastTime == Long.MIN_VALUE) {
+			lastTime = CURRENTTIME;
 		}
-		double delta = (TIME - time) / 1000.0;
-		time = TIME;
+		double delta = (CURRENTTIME - lastTime) / 1000.0;
+		lastTime = CURRENTTIME;
 		if (delta <= 0.0005) {
 			delta = 0.0005;
 		}
 		return regulate(error, delta);
 	}
 
-	private double regulate(final double error, final double dt) {
+	final private double regulate(final double error, final double dt) {
+
 		double proportional = error * P;
+
 		integral += error * I * dt;
 		double differential = 0;
 		if (Double.isNaN(oldError)) {
@@ -93,16 +111,16 @@ public class PID {
 		return lastRegulation = proportional + integral + differential;
 	}
 
-	public void resetTimings() {
-		time = Long.MIN_VALUE;
+	final public void resetTimings() {
+		lastTime = Long.MIN_VALUE;
 		oldError = Double.NaN;
 	}
 
-	public double getLast() {
+	final public double getLast() {
 		return lastRegulation;
 	}
 
-	private static double bound(double value, double min, double max) {
+	final private static double bound(double value, double min, double max) {
 		return Math.max(Math.min(value, max), min);
 	}
 }

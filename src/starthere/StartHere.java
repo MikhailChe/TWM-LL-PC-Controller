@@ -33,7 +33,9 @@ public class StartHere {
 			throws IOException, InterruptedException, NoSuchPortException, PortInUseException {
 		try {
 
-			PID regulator = new PID(.05, 1.0 / 50.0, 1.0).setProportionalBounds(-5, 5).setIntegralBounds(-5, 5)
+			PID regulator = new PID(.05, 1.0 / 50.0, 1.0)
+					.setProportionalBounds(-5, 5)
+					.setIntegralBounds(-5, 5)
 					.setDifferentialBounds(-.5, .5);
 			SlopeLimiter outputSlopeLimit = new SlopeLimiter(1, 0);
 			boards = UniDAQLib.instance();
@@ -137,8 +139,7 @@ public class StartHere {
 	}
 
 	public static boolean controlLoop(final double SETTED_VALUE, final double DEVIATION, final long settlingTimeMillis,
-			final PID regulator, final SlopeLimiter outputSlopeLimit, final ADC ADC, final DAC DAC)
-			throws NoSuchPortException, PortInUseException, InterruptedException {
+			final PID regulator, final SlopeLimiter outputSlopeLimit, final ADC ADC, final DAC DAC) {
 		try {
 			while (System.in.available() > 0) {
 				System.in.read();
@@ -147,10 +148,9 @@ public class StartHere {
 			e.printStackTrace();
 		}
 
-		PrintStream out = null;
 		// *** CONFUGRE ADC AND DAC ***//
 
-		try {
+		try (PrintStream out = new PrintStream("output.tsv");) {
 			short[] channels = { 0, 2, 4, 6 };
 			ChannelConfig[] configEnum = { ChannelConfig.BI_10V, ChannelConfig.BI_10V, ChannelConfig.BI_10V,
 					ChannelConfig.BI_10V };
@@ -171,7 +171,7 @@ public class StartHere {
 
 			long lastMeasureTime = System.currentTimeMillis();
 			// *** PREPARE FOR PRINTING STUFF ***//
-			out = new PrintStream("output.tsv");
+
 			final long STARTTIME = System.currentTimeMillis();
 			double oldTemperature = Double.NaN;
 
@@ -240,11 +240,6 @@ public class StartHere {
 			}
 		} catch (UniDaqException | IOException e1) {
 			e1.printStackTrace();
-		} finally {
-			if (out != null) {
-				out.flush();
-				out.close();
-			}
 		}
 		return false;
 	}
@@ -288,20 +283,18 @@ public class StartHere {
 		final double ADC_MAXTICKS = 32768;
 
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		PrintStream ps = new PrintStream(baos);
+		try (PrintStream ps = new PrintStream(baos);) {
 
-		ps.printf("%d\t%.0f%n", data.length, experimentFrequency * 10.0f);
-		for (int i = 0; i < data.length; i++) {
-			for (int channel = 0; channel < data[i].length; channel++) {
-				ps.printf("%.0f", data[i][channel] * ADC_MAXTICKS / ADC_MAX_VOLTAGE);
-				if (channel < data[i].length - 1)
-					ps.print("\t");
+			ps.printf("%d\t%.0f%n", data.length, experimentFrequency * 10.0f);
+			for (int i = 0; i < data.length; i++) {
+				for (int channel = 0; channel < data[i].length; channel++) {
+					ps.printf("%.0f", data[i][channel] * ADC_MAXTICKS / ADC_MAX_VOLTAGE);
+					if (channel < data[i].length - 1)
+						ps.print("\t");
+				}
+				ps.println();
 			}
-			ps.println();
 		}
-		ps.flush();
-		ps.close();
-
 		try {
 			Files.write(Paths.get(filename), baos.toByteArray(), StandardOpenOption.CREATE_NEW);
 		} catch (IOException e) {

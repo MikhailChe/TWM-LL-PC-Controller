@@ -62,7 +62,7 @@ public class ServoController implements AutoCloseable {
 	}
 
 	public static Set<CommPortIdentifier> getAvailableSerialPorts() {
-		Set<CommPortIdentifier> h = new HashSet<CommPortIdentifier>();
+		Set<CommPortIdentifier> h = new HashSet<>();
 		Enumeration<?> thePorts = CommPortIdentifier.getPortIdentifiers();
 		while (thePorts.hasMoreElements()) {
 			CommPortIdentifier com = (CommPortIdentifier) thePorts.nextElement();
