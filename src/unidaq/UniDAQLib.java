@@ -147,6 +147,7 @@ public class UniDAQLib implements AutoCloseable {
 	}
 
 	private static UniDAQLib INSTANCE;
+	
 
 	public static UniDAQLib instance() throws UniDaqException {
 		if (INSTANCE == null) {

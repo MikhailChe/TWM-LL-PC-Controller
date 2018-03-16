@@ -1,7 +1,6 @@
 package asdaservo;
 
 import static java.lang.System.currentTimeMillis;
-import static java.lang.System.out;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,10 +13,13 @@ import java.util.concurrent.TimeUnit;
 
 import gnu.io.CommPort;
 import gnu.io.CommPortIdentifier;
+import gnu.io.NoSuchPortException;
+import gnu.io.PortInUseException;
 import gnu.io.SerialPort;
+import gnu.io.UnsupportedCommOperationException;
 
-public class ServoController {
-	static int crc_chk(final byte[] data) {
+public class ServoController implements AutoCloseable {
+	static int calculateCRC(final byte[] data) {
 
 		int reg_crc = 0xFFFF;
 		for (int i = 0; i < data.length; i++) {
@@ -35,81 +37,28 @@ public class ServoController {
 		return reg_crc;
 	}
 
-	public static void main(String[] args) {
-		if (args.length == 0) {
-			System.err.println("NO PORT SPECIFIED");
-			return;
+	public static boolean crcMatch(final byte[] arr) {
+		int crc = calculateCRC(Arrays.copyOf(arr, arr.length - 2));
+		int crc_l = crc & 0xFF;
+		int crc_h = (crc >> 8) & 0xFF;
+
+		if (crc_l == Byte.toUnsignedInt(arr[arr.length - 2]) && crc_h == Byte.toUnsignedInt(arr[arr.length - 1])) {
+			System.out.println("CRC match");
+			return true;
 		}
-		final String portName = args[0];
-		if (!portName.contains("COM")) {
-			System.err.println("NOT A COM PORT");
-			return;
-		}
-		System.out.println("PORT: " + portName);
+		System.out.println("CRC not match: [" + crc_l + "," + crc_h + "] <---> ["
+				+ Byte.toUnsignedInt(arr[arr.length - 2]) + "," + Byte.toUnsignedInt(arr[arr.length - 1]) + "]");
 
-		try {
-			out.println("Opening serial port COM1");
-			SerialPort comport = connect(portName);
-
-			try (InputStream is = comport.getInputStream(); OutputStream os = comport.getOutputStream();) {
-				out.println("Opened serial port and streams");
-
-				ServoController servo = new ServoController();
-
-				out.println("Starting servo drive...");
-
-				servo.startStop(os, is, true);
-				out.println("DONE\r\n");
-
-				try {
-					TimeUnit.SECONDS.sleep(5);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-
-				for (int i = 1; i < 7; i++) {
-					out.println("Writing " + i + "Hz...");
-					servo.writeSpeed(os, is, i);
-					out.println("DONE\r\n");
-					try {
-						TimeUnit.SECONDS.sleep(5);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-				out.println("Stopping servo drive...");
-				servo.startStop(os, is, false);
-				out.println("DONE\r\n");
-			} catch (IOException e) {
-				e.printStackTrace();
-				comport.close();
-				return;
-			} finally {
-
-				comport.close();
-			}
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
+		return false;
 	}
 
-	static SerialPort connect(String portname) throws Exception {
-		CommPortIdentifier portID = CommPortIdentifier.getPortIdentifier(portname);
-		if (portID.isCurrentlyOwned()) {
-			System.err.println("Error: Port is currently in use");
-		} else {
-			CommPort commPort = portID.open(ServoController.class.getName(), 2000);
-			if (commPort instanceof SerialPort) {
-				SerialPort serialPort = (SerialPort) commPort;
-				serialPort.setSerialPortParams(115200, SerialPort.DATABITS_8, SerialPort.STOPBITS_2,
-						SerialPort.PARITY_NONE);
-				serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
-				return serialPort;
-			}
-		}
-		return null;
+	public static byte[] addCRC(final byte[] input) {
+		int crc = calculateCRC(input);
+
+		byte[] output = Arrays.copyOf(input, input.length + 2);
+		output[output.length - 2] = (byte) (crc & 0xFF);
+		output[output.length - 1] = (byte) ((crc >> 8) & 0xFF);
+		return output;
 	}
 
 	public static Set<CommPortIdentifier> getAvailableSerialPorts() {
@@ -135,42 +84,110 @@ public class ServoController {
 		return h;
 	}
 
-	final byte ADR = 0x01;// адрес сервопривода
-	// -----------------------------------//
-	final byte CMD_READ = 0x03;// команда чтения
-	final byte CMD_WRITE = 0x06; // команда записи
-	// -----------------------------//
-	final byte ADR_SPEED_1 = 0x01; // P1
-	final byte ADR_SPEED_2 = 0x09; // -09
-	// -----------------------------//
-	final byte ADR_SDI_HIGH = 0x03;// P3
-	final byte ADR_SDI_LOW = 0x06;// 06
-	// -----------------------------//
-	final byte ADR_SRON_HIGH = 0x02;// P2
-	final byte ADR_SRON_LOW = 0x33;// 51
-	// -----------------------------//
-	final byte SRON_ON_HIGH = 0x00;// старт
-	final byte SRON_ON_LOW = 0x01;// SERVO ON
-	// -----------------------------//
-	final byte SRON_OFF_HIGH = 0x00;// стоп
-	final byte SRON_OFF_LOW = 0x00;// SERVO OFF
-	// -----------------------------//
-	// -----------------------------//
-	final byte START_1 = 0x00;// старт
-	final byte START_2 = 0x05;// Первой скорости
-	// -----------------------------//
-	final byte STOPED_1 = 0x00;// стоп
-	final byte STOPED_2 = 0x04;// Первой скорости
+	final String ME;
 
-	public void printArray(byte[] arr) {
-		System.out.print("[");
-		for (byte b : arr) {
-			System.out.print("0x" + Integer.toHexString(Byte.toUnsignedInt(b)) + ", ");
-		}
-		System.out.println("]");
+	String portName;
+	CommPortIdentifier portID = null;
+	SerialPort port = null;
+	boolean portOpened = false;
+
+	public ServoController(String portName) throws NoSuchPortException, PortInUseException {
+		this.portName = portName;
+		this.ME = this.getClass().getName();
+		open();
+		close();
 	}
 
-	public boolean startStop(final OutputStream out, final InputStream in, final boolean startNOTstop) {
+	public synchronized void open() throws NoSuchPortException, PortInUseException {
+		if (portID == null) {
+			portID = CommPortIdentifier.getPortIdentifier(portName);
+		}
+
+		if (portID.isCurrentlyOwned()) {
+			if (!ME.equals(portID.getCurrentOwner())) {
+				throw new PortInUseException();
+			}
+		} else {
+			CommPort comport = portID.open(ME, 2000);
+			if (comport instanceof SerialPort) {
+				port = (SerialPort) comport;
+				try {
+					port.setSerialPortParams(115200, SerialPort.DATABITS_8, SerialPort.STOPBITS_2,
+							SerialPort.PARITY_NONE);
+					port.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
+				} catch (UnsupportedCommOperationException ignore) {
+					ignore.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Override
+	public void close() {
+		if (portID != null) {
+			if (this.getClass().getName().equals(portID.getCurrentOwner())) {
+				if (port != null) {
+					port.close();
+					port = null;
+				}
+			}
+		}
+	}
+
+	private final byte ADR = 0x01;// адрес сервопривода
+	// -----------------------------------//
+	// private final byte CMD_READ = 0x03;// команда чтения
+	private final byte CMD_WRITE = 0x06; // команда записи
+	// -----------------------------//
+	private final byte ADR_SPEED_1 = 0x01; // P1
+	private final byte ADR_SPEED_2 = 0x09; // -09
+	// -----------------------------//
+	// private final byte ADR_SDI_HIGH = 0x03;// P3
+	// private final byte ADR_SDI_LOW = 0x06;// 06
+	// -----------------------------//
+	private final byte ADR_SRON_HIGH = 0x02;// P2
+	private final byte ADR_SRON_LOW = 0x33;// 51
+	// -----------------------------//
+	private final byte SRON_ON_HIGH = 0x00;// старт
+	private final byte SRON_ON_LOW = 0x01;// SERVO ON
+	// -----------------------------//
+	private final byte SRON_OFF_HIGH = 0x00;// стоп
+	private final byte SRON_OFF_LOW = 0x00;// SERVO OFF
+	// -----------------------------//
+	// -----------------------------//
+	// private final byte START_1 = 0x00;// старт
+	// private final byte START_2 = 0x05;// Первой скорости
+	// -----------------------------//
+	// private final byte STOPED_1 = 0x00;// стоп
+	// private final byte STOPED_2 = 0x04;// Первой скорости
+
+	public void start() {
+		try {
+			open();
+			startStop(port.getOutputStream(), port.getInputStream(), true);
+		} catch (NoSuchPortException | PortInUseException e) {
+			// IGNORE. Handled at constructor
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			close();
+		}
+	}
+
+	public void stop() {
+		try {
+			open();
+			startStop(port.getOutputStream(), port.getInputStream(), false);
+		} catch (NoSuchPortException | PortInUseException e) {
+			// IGNORE. Handled at constructor
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			close();
+		}
+	}
+
+	private synchronized boolean startStop(final OutputStream out, final InputStream in, final boolean startNOTstop) {
 		byte[] pack;
 		try {
 			if (startNOTstop) {
@@ -203,7 +220,21 @@ public class ServoController {
 		return true;
 	}
 
-	public boolean writeSpeed(final OutputStream out, final InputStream in, final double frequency) {
+	public void writeSpeed(final double frequencyHZ) {
+		try {
+			open();
+			writeSpeed(port.getOutputStream(), port.getInputStream(), frequencyHZ);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (NoSuchPortException | PortInUseException e) {
+			// THIS SHOULD NEVER HAPPEN. HANDLED AT CONSTRUCTOR
+			e.printStackTrace();
+		} finally {
+			close();
+		}
+	}
+
+	private boolean writeSpeed(final OutputStream out, final InputStream in, final double frequency) {
 		int rpm = (int) Math.round(frequency * 60.0 / 2.0); // divide by 2 becasuse of modulator shape
 
 		byte speed_l = (byte) (rpm & 0xFF);
@@ -239,22 +270,13 @@ public class ServoController {
 			}
 
 			in.read(input);
-
-			int settedSpeed = (Byte.toUnsignedInt(input[4]) << 8) | (Byte.toUnsignedInt(input[5]));
-
-			if (settedSpeed != rpm) {
-
-				printArray(pack);
-				crcMatch(pack);
-				printArray(input);
-				crcMatch(input);
-
-				System.out.println(new String(input));
-
-				System.err.printf("Setted speed (%d) != rpm (%d)%n", settedSpeed, rpm);
-				return false;
-			}
-
+			// int settedSpeed = (Byte.toUnsignedInt(input[4]) << 8) |
+			// (Byte.toUnsignedInt(input[5]));
+			// if (settedSpeed != rpm) {
+			// crcMatch(pack);
+			// crcMatch(input);
+			// return false;
+			// }
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;
@@ -262,27 +284,4 @@ public class ServoController {
 		return true;
 	}
 
-	public boolean crcMatch(final byte[] arr) {
-		int crc = crc_chk(Arrays.copyOf(arr, arr.length - 2));
-		int crc_l = crc & 0xFF;
-		int crc_h = (crc >> 8) & 0xFF;
-
-		if (crc_l == Byte.toUnsignedInt(arr[arr.length - 2]) && crc_h == Byte.toUnsignedInt(arr[arr.length - 1])) {
-			System.out.println("CRC match");
-			return true;
-		}
-		System.out.println("CRC not match: [" + crc_l + "," + crc_h + "] <---> ["
-				+ Byte.toUnsignedInt(arr[arr.length - 2]) + "," + Byte.toUnsignedInt(arr[arr.length - 1]) + "]");
-
-		return false;
-	}
-
-	public byte[] addCRC(final byte[] input) {
-		int crc = crc_chk(input);
-
-		byte[] output = Arrays.copyOf(input, input.length + 2);
-		output[output.length - 2] = (byte) (crc & 0xFF);
-		output[output.length - 1] = (byte) ((crc >> 8) & 0xFF);
-		return output;
-	}
 }
