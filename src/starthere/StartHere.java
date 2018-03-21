@@ -27,11 +27,13 @@ import unidaq.UniDaqException;
 public class StartHere {
 	static UniDAQLib boards = null;
 
+	final static boolean debug = false;
+
 	// ** MAKE THOSE LINES CONFIGURABLE VIA GUI ***///
 	final static String serialPortName = "COM1";
-	final static int initialTemperature = 470;
+	final static int initialTemperature = 590;
 	final static boolean initiallyUp = true;
-	final static int minTemperature = 470;
+	final static int minTemperature = 390;
 	final static int maxTemeprature = 1650;
 
 	final static int changeDegrees = 10;
@@ -39,11 +41,13 @@ public class StartHere {
 	final static double EXPERIMENT_FREQUENCY = 5;
 
 	// ***********************************************//
+
+	static boolean needhook = true;
+
 	public static void main(String[] args)
 			throws IOException, InterruptedException, NoSuchPortException, PortInUseException {
 		try {
-
-			PID regulator = new PID(.05, 1 / 200.0, .1).setProportionalBounds(-5, 5).setIntegralBounds(-5, 5)
+			PID regulator = new PID(.05, 1 / 75.0, .1).setProportionalBounds(-5, 5).setIntegralBounds(-5, 5)
 					.setDifferentialBounds(-.5, .5);
 			SlopeLimiter outputSlopeLimit = new SlopeLimiter(1, 0);
 			boards = UniDAQLib.instance();
@@ -57,17 +61,19 @@ public class StartHere {
 			// **** HANDLE CTRL-C or CLI window closing. **** //
 			// **Closing port and freeing driver resources ** //
 			Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-				System.out.println("Initiating shutdown hook");
-				try {
-					boards.getDAC(0).writeAOVoltage(0);
-				} catch (UniDaqException e) {
-					e.printStackTrace();
-				}
-				if (boards != null) {
+				if (needhook) {
+					System.out.println("Initiating shutdown hook");
 					try {
-						boards.close();
+						boards.getDAC(0).writeAOVoltage(0);
 					} catch (UniDaqException e) {
 						e.printStackTrace();
+					}
+					if (boards != null) {
+						try {
+							boards.close();
+						} catch (UniDaqException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			}));
@@ -82,7 +88,7 @@ public class StartHere {
 				while (true) {
 					regulator.resetTimings();
 					outputSlopeLimit.resetTiming();
-					boolean successsControl = controlLoop(kelvins, .6, TimeUnit.SECONDS.toMillis(5), regulator,
+					boolean successsControl = controlLoop(kelvins, 2, TimeUnit.SECONDS.toMillis(5), regulator,
 							outputSlopeLimit, ADC, DAC);
 					if (!successsControl) {
 						boolean stopDetected = false;
@@ -132,6 +138,7 @@ public class StartHere {
 				} catch (UniDaqException e) {
 					e.printStackTrace();
 				}
+				needhook = false;
 			}
 		}
 	}
@@ -153,7 +160,7 @@ public class StartHere {
 
 		// *** CONFUGRE ADC AND DAC ***//
 
-		try (PrintStream out = new PrintStream("output.tsv");) {
+		try (PrintStream out = new PrintStream(String.format("output-%d.tsv", System.currentTimeMillis() / 1000L));) {
 			short[] channels = { 0, 2, 4, 6 };
 			ChannelConfig[] configEnum = { ChannelConfig.BI_10V, ChannelConfig.BI_10V, ChannelConfig.BI_10V,
 					ChannelConfig.BI_10V };
@@ -236,7 +243,9 @@ public class StartHere {
 					}
 				}
 				if (Double.isNaN(oldTemperature) || Math.abs(oldTemperature - temperatureStabFilter.getValue()) > .1) {
-					System.out.printf("%20.1f K\t%20.4f%n", temperatureStabFilter.getValue(), slopeLimited);
+					if (debug) {
+						System.out.printf("%20.1f K\t%20.4f%n", temperatureStabFilter.getValue(), slopeLimited);
+					}
 					oldTemperature = temperatureStabFilter.getValue();
 				}
 				if (System.in.available() > 0) {

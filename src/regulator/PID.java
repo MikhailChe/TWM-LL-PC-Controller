@@ -1,7 +1,7 @@
 package regulator;
 
 final public class PID {
-	static boolean DEBUG = false;
+	static boolean DEBUG = true;
 
 	final private double P;
 	final private double I;
