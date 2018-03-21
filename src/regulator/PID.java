@@ -1,6 +1,8 @@
 package regulator;
 
 final public class PID {
+	static boolean DEBUG = false;
+
 	final private double P;
 	final private double I;
 	final private double D;
@@ -95,7 +97,7 @@ final public class PID {
 
 		integral += error * I * dt;
 		double differential = 0;
-		if (Double.isNaN(oldError)) {
+		if (!Double.isFinite(oldError)) {
 			oldError = error;
 		} else {
 			differential = (error - oldError) * D / dt;
@@ -106,8 +108,9 @@ final public class PID {
 		integral = bound(integral, integralMin, integralMax);
 		differential = bound(differential, differentialMin, differentialMax);
 
-		System.out.printf("dt %-5.3f err %-5.1f pr %-5.1f int %-5.1f dif %-5.1f%n", dt, error, proportional, integral,
-				differential);
+		if (DEBUG)
+			System.out.printf("dt %-5.3f err %-5.1f pr %-5.1f int %-5.1f dif %-5.1f%n", dt, error, proportional,
+					integral, differential);
 		return lastRegulation = proportional + integral + differential;
 	}
 

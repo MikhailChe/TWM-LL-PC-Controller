@@ -187,7 +187,7 @@ public class ServoController implements AutoCloseable {
 		}
 	}
 
-	private synchronized boolean startStop(final OutputStream out, final InputStream in, final boolean startNOTstop) {
+	private synchronized boolean startStop(final OutputStream out, @SuppressWarnings("unused") final InputStream in, final boolean startNOTstop) {
 		byte[] pack;
 		try {
 			if (startNOTstop) {

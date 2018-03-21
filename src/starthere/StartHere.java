@@ -27,15 +27,23 @@ import unidaq.UniDaqException;
 public class StartHere {
 	static UniDAQLib boards = null;
 
+	// ** MAKE THOSE LINES CONFIGURABLE VIA GUI ***///
 	final static String serialPortName = "COM1";
+	final static int initialTemperature = 470;
+	final static boolean initiallyUp = true;
+	final static int minTemperature = 470;
+	final static int maxTemeprature = 1650;
 
+	final static int changeDegrees = 10;
+
+	final static double EXPERIMENT_FREQUENCY = 5;
+
+	// ***********************************************//
 	public static void main(String[] args)
 			throws IOException, InterruptedException, NoSuchPortException, PortInUseException {
 		try {
 
-			PID regulator = new PID(.05, 1.0 / 50.0, 1.0)
-					.setProportionalBounds(-5, 5)
-					.setIntegralBounds(-5, 5)
+			PID regulator = new PID(.05, 1 / 200.0, .1).setProportionalBounds(-5, 5).setIntegralBounds(-5, 5)
 					.setDifferentialBounds(-.5, .5);
 			SlopeLimiter outputSlopeLimit = new SlopeLimiter(1, 0);
 			boards = UniDAQLib.instance();
@@ -43,16 +51,7 @@ public class StartHere {
 			ADC ADC = boards.getADC(0);
 			DAC DAC = boards.getDAC(0);
 
-			// ** MAKE THOSE LINES CONFIGURABLE VIA GUI ***///
-			final int initialTemperature = 570;
-			final boolean initiallyUp = true;
-			final int minTemperature = 510;
-			final int maxTemeprature = 1650;
-
-			final int changeDegrees = 10;
-			// ***********************************************//
-
-			int degrees = initialTemperature;
+			int kelvins = initialTemperature;
 			boolean goingUp = initiallyUp;
 
 			// **** HANDLE CTRL-C or CLI window closing. **** //
@@ -79,38 +78,42 @@ public class StartHere {
 			}
 
 			// ** START CONTROL AND MEASUREMENT LOOP ** //
-			while (true) {
-				regulator.resetTimings();
-				outputSlopeLimit.resetTiming();
-				boolean successsControl = controlLoop(degrees, .6, TimeUnit.SECONDS.toMillis(5), regulator,
-						outputSlopeLimit, ADC, DAC);
-				if (!successsControl) {
-					boolean stopDetected = false;
-					while (System.in.available() > 0) {
-						int val = System.in.read();
-						if ((val == -1) || ((char) val) == 's') {
-							stopDetected = true;
+			try (PrintStream powerToTemperature = new PrintStream("fileTemperature.tsv")) {
+				while (true) {
+					regulator.resetTimings();
+					outputSlopeLimit.resetTiming();
+					boolean successsControl = controlLoop(kelvins, .6, TimeUnit.SECONDS.toMillis(5), regulator,
+							outputSlopeLimit, ADC, DAC);
+					if (!successsControl) {
+						boolean stopDetected = false;
+						while (System.in.available() > 0) {
+							int val = System.in.read();
+							if ((val == -1) || ((char) val) == 's') {
+								stopDetected = true;
+							}
+						}
+						if (stopDetected) {
+							break;
 						}
 					}
-					if (stopDetected) {
-						break;
+					powerToTemperature.printf("%f\t%d%n", regulator.getLast(), kelvins);
+					// *****MEASURE ****///
+					setupReadAndPrintExperiment(new short[] { 0, 2, 4, 6 }, EXPERIMENT_FREQUENCY, 64);
+
+					if (goingUp) {
+						kelvins += changeDegrees;
+					} else {
+						kelvins -= changeDegrees;
+					}
+
+					if (kelvins > maxTemeprature) {
+						goingUp = false;
+					}
+					if (kelvins < minTemperature) {
+						goingUp = true;
 					}
 				}
-				// *****MEASURE ****///
-				setupReadAndPrintExperiment(new short[] { 0, 2, 4, 6 }, 5, 32);
-
-				if (goingUp) {
-					degrees += changeDegrees;
-				} else {
-					degrees -= changeDegrees;
-				}
-
-				if (degrees > maxTemeprature) {
-					goingUp = false;
-				}
-				if (degrees < minTemperature) {
-					goingUp = true;
-				}
+				powerToTemperature.flush();
 			}
 
 		} catch (UniDaqException e) {
@@ -160,9 +163,11 @@ public class StartHere {
 
 			Graduate grad = GraduateFactory.forBinary(new File("VR-5-20-list2.gradbin"));
 
-			// *** PREPARE REGULATION LINE .08 ***//
+			// *** PREPARE REGULATION LINE ***//
 			TriFunction<Double, Double, Double> clipper = (o, min, max) -> Math
 					.max(Math.min(o.doubleValue(), max.doubleValue()), min.doubleValue());
+			// PolynomialController directTemperatureToPowerControl = new
+			// PolynomialController(2E-6, -0.0016, 1.0477);
 
 			// *** LOW PASS FILTERS ***//
 			LowPass temperatureFilter = new LowPass(LowPass.FrequencyToRC(10));
@@ -202,25 +207,26 @@ public class StartHere {
 				double error = errorFilter.filter(SETTED_VALUE - temperature);
 
 				double force = regulator.regulate(error, CURRENTTIME);
+				// + directTemperatureToPowerControl.regulate(error + temperature); // reusing
+				// already filtered
+				// value
 
 				double clipped = clipper.apply(force, 0.0, 4.95);
 
-				double normalizeTo2 = 2.0 * clipped / 5.0;
+				double slopeLimited = outputSlopeLimit.limit(clipped, CURRENTTIME);
+
+				double normalizeTo2 = 2.0 * slopeLimited / 5.0;
 
 				double clippedNormalization = clipper.apply(normalizeTo2, 0.0, 1.9999999999);
 
-				double linearization = Math.acos(1 - clippedNormalization);
+				double linearization = Math.acos(1 - clippedNormalization) / Math.PI * 4.995;
 
-				double denormalize = linearization / Math.PI * 4.995;
+				DAC.writeAOVoltage(clipper.apply(linearization, 0.0, 4.0));
 
-				double slopeLimited = outputSlopeLimit.limit(denormalize, CURRENTTIME);
-
-				DAC.writeAOVoltage(slopeLimited);
-
-				// *-*****************PRINT *************-*//
+				// ************* PRINT **********//
 
 				out.printf("%f\t%10f\t%10f\t%10f\t%10f\t%10f%n", (CURRENTTIME - STARTTIME) / 1000.0,
-						temperatureFilter.getValue(), temperatureStabFilter.getValue(), error, force, denormalize);
+						temperatureFilter.getValue(), temperatureStabFilter.getValue(), error, force, linearization);
 
 				if (Math.abs(SETTED_VALUE - temperatureStabFilter.getValue()) > Math.abs(DEVIATION)) {
 					insideSettedRegionTime = CURRENTTIME;
@@ -230,7 +236,7 @@ public class StartHere {
 					}
 				}
 				if (Double.isNaN(oldTemperature) || Math.abs(oldTemperature - temperatureStabFilter.getValue()) > .1) {
-					// System.out.printf("%20.1f K%n", temperatureStabFilter.getValue());
+					System.out.printf("%20.1f K\t%20.4f%n", temperatureStabFilter.getValue(), slopeLimited);
 					oldTemperature = temperatureStabFilter.getValue();
 				}
 				if (System.in.available() > 0) {
@@ -251,7 +257,7 @@ public class StartHere {
 	 * @throws NoSuchPortException
 	 * @throws FileNotFoundException
 	 */
-	public static void setupReadAndPrintExperiment(final short[] channels, final float experimentFreq,
+	public static void setupReadAndPrintExperiment(final short[] channels, final double experimentFreq,
 			final int numPeriods)
 			throws InterruptedException, NoSuchPortException, PortInUseException, FileNotFoundException {
 		if (experimentFreq <= 0) {
@@ -268,10 +274,10 @@ public class StartHere {
 		try (ServoController motor = new ServoController(serialPortName)) {
 			motor.writeSpeed(experimentFreq);
 			TimeUnit.SECONDS.sleep(2);
-			float[][] values = readOut(channels, experimentFreq, numPeriods);
+			float[][] values = readOut(channels, (float) experimentFreq, numPeriods);
 			String filename = String.format("%d.txt", System.currentTimeMillis());
 
-			printData(filename, experimentFreq, values);
+			printData(filename, (float) experimentFreq, values);
 			System.out.println(filename);
 		}
 

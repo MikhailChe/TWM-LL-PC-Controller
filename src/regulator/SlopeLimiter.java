@@ -38,7 +38,7 @@ final public class SlopeLimiter {
 			throw new IllegalArgumentException("Delta time is impossibly small or nan = " + dt);
 		}
 
-		if (!Double.isInfinite(value)) {
+		if (!Double.isFinite(value)) {
 			throw new IllegalArgumentException("Value is not finitie (=" + value);
 		}
 
