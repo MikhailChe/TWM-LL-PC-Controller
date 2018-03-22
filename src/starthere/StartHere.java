@@ -31,7 +31,7 @@ public class StartHere {
 
 	// ** MAKE THOSE LINES CONFIGURABLE VIA GUI ***///
 	final static String serialPortName = "COM1";
-	final static int initialTemperature = 590;
+	final static int initialTemperature = 420;
 	final static boolean initiallyUp = true;
 	final static int minTemperature = 390;
 	final static int maxTemeprature = 1650;
@@ -46,6 +46,15 @@ public class StartHere {
 
 	public static void main(String[] args)
 			throws IOException, InterruptedException, NoSuchPortException, PortInUseException {
+
+		MainWindow window = new MainWindow();
+		window.pack();
+		window.setMinimumSize(window.getSize());
+		window.setVisible(true);
+		while (window.isVisible()) {
+			Thread.yield();
+		}
+		System.exit(0);
 		try {
 			PID regulator = new PID(.05, 1 / 75.0, .1).setProportionalBounds(-5, 5).setIntegralBounds(-5, 5)
 					.setDifferentialBounds(-.5, .5);
@@ -88,8 +97,8 @@ public class StartHere {
 				while (true) {
 					regulator.resetTimings();
 					outputSlopeLimit.resetTiming();
-					boolean successsControl = controlLoop(kelvins, 2, TimeUnit.SECONDS.toMillis(5), regulator,
-							outputSlopeLimit, ADC, DAC);
+					boolean successsControl = controlLoop(kelvins, 2, TimeUnit.SECONDS, 5, regulator, outputSlopeLimit,
+							ADC, DAC);
 					if (!successsControl) {
 						boolean stopDetected = false;
 						while (System.in.available() > 0) {
@@ -148,8 +157,9 @@ public class StartHere {
 		O apply(O o, A a, B b);
 	}
 
-	public static boolean controlLoop(final double SETTED_VALUE, final double DEVIATION, final long settlingTimeMillis,
-			final PID regulator, final SlopeLimiter outputSlopeLimit, final ADC ADC, final DAC DAC) {
+	public static boolean controlLoop(final double SETTED_VALUE, final double DEVIATION, final TimeUnit timeUnit,
+			final long settlingTimeMillis, final PID regulator, final SlopeLimiter outputSlopeLimit, final ADC ADC,
+			final DAC DAC) {
 		try {
 			while (System.in.available() > 0) {
 				System.in.read();
@@ -238,7 +248,7 @@ public class StartHere {
 				if (Math.abs(SETTED_VALUE - temperatureStabFilter.getValue()) > Math.abs(DEVIATION)) {
 					insideSettedRegionTime = CURRENTTIME;
 				} else {
-					if ((CURRENTTIME - insideSettedRegionTime) > settlingTimeMillis) {
+					if ((CURRENTTIME - insideSettedRegionTime) > timeUnit.toMillis(settlingTimeMillis)) {
 						return true;
 					}
 				}
