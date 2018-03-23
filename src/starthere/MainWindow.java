@@ -20,6 +20,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.TitledBorder;
 
@@ -27,8 +28,14 @@ import asdaservo.ServoController;
 import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
 
-public class MainWindow extends JFrame {
+public class MainWindow extends JFrame implements SettingsHolder {
 	private JSpinner servoFrequencyHzSpinner;
+	private JSpinner initTemperatureSpinner;
+	private JSpinner minTemperatureSpinner;
+	private JSpinner maxTemperatureSpinner;
+	private JSpinner temperatureStepSpinner;
+	private JCheckBox initiallyUpCheckbox;
+	private JComboBox<String> servoDriveComPortCombobox;
 
 	public MainWindow() {
 
@@ -69,7 +76,7 @@ public class MainWindow extends JFrame {
 		gbc_initialTemperatureLabel.gridy = 0;
 		temperatureRegulationPanel.add(initialTemperatureLabel, gbc_initialTemperatureLabel);
 
-		JSpinner initTemperatureSpinner = new JSpinner();
+		initTemperatureSpinner = new JSpinner();
 		initTemperatureSpinner.setModel(new SpinnerNumberModel(500, 400, 1800, 1));
 		GridBagConstraints gbc_initTemperatureSpinner = new GridBagConstraints();
 		gbc_initTemperatureSpinner.fill = GridBagConstraints.HORIZONTAL;
@@ -85,7 +92,7 @@ public class MainWindow extends JFrame {
 		gbc_minTemperatureLabel.gridx = 0;
 		gbc_minTemperatureLabel.gridy = 1;
 		temperatureRegulationPanel.add(minTemperatureLabel, gbc_minTemperatureLabel);
-		JSpinner minTemperatureSpinner = new JSpinner();
+		minTemperatureSpinner = new JSpinner();
 		minTemperatureSpinner.setModel(new SpinnerNumberModel(490, 400, 1800, 1));
 		GridBagConstraints gbc_minTemperatureSpinner = new GridBagConstraints();
 		gbc_minTemperatureSpinner.fill = GridBagConstraints.HORIZONTAL;
@@ -102,7 +109,7 @@ public class MainWindow extends JFrame {
 		gbc_maxTemperatureLabel.gridy = 2;
 		temperatureRegulationPanel.add(maxTemperatureLabel, gbc_maxTemperatureLabel);
 
-		JSpinner maxTemperatureSpinner = new JSpinner();
+		maxTemperatureSpinner = new JSpinner();
 		maxTemperatureSpinner.setModel(new SpinnerNumberModel(1650, 400, 1800, 1));
 		GridBagConstraints gbc_maxTemperatureSpinner = new GridBagConstraints();
 		gbc_maxTemperatureSpinner.fill = GridBagConstraints.HORIZONTAL;
@@ -119,7 +126,7 @@ public class MainWindow extends JFrame {
 		gbc_temperatureStep.gridy = 3;
 		temperatureRegulationPanel.add(temperatureStep, gbc_temperatureStep);
 
-		JSpinner temperatureStepSpinner = new JSpinner();
+		temperatureStepSpinner = new JSpinner();
 		temperatureStepSpinner.setModel(new SpinnerNumberModel(10, 1, 100, 1));
 		GridBagConstraints gbc_temperatureStepSpinner = new GridBagConstraints();
 		gbc_temperatureStepSpinner.fill = GridBagConstraints.HORIZONTAL;
@@ -136,7 +143,7 @@ public class MainWindow extends JFrame {
 		gbc_initiallyUpLabel.gridy = 4;
 		temperatureRegulationPanel.add(initiallyUpLabel, gbc_initiallyUpLabel);
 
-		JCheckBox initiallyUpCheckbox = new JCheckBox();
+		initiallyUpCheckbox = new JCheckBox();
 		initiallyUpCheckbox.setSelected(true);
 		GridBagConstraints gbc_initiallyUpCheckbox = new GridBagConstraints();
 		gbc_initiallyUpCheckbox.fill = GridBagConstraints.HORIZONTAL;
@@ -222,13 +229,22 @@ public class MainWindow extends JFrame {
 		JButton btnStartExperiment = new JButton("E-Start");
 		btnStartExperiment.setActionCommand("start");
 		btnStartExperiment.addActionListener((e) -> {
-			JButton source = (JButton) e.getSource();
+			final JButton source = (JButton) e.getSource();
+			source.setEnabled(false);
 			if (e.getActionCommand().equals("start")) {
 				source.setActionCommand("stop");
 				source.setText("E-Stop");
+				SwingUtilities.invokeLater(() -> {
+					Measurement.measurementControl(MainWindow.this, true);
+					source.setEnabled(true);
+				});
 			} else if (e.getActionCommand().equals("stop")) {
 				source.setActionCommand("start");
 				source.setText("E-Start");
+				SwingUtilities.invokeLater(() -> {
+					Measurement.measurementControl(MainWindow.this, false);
+					source.setEnabled(true);
+				});
 			}
 		});
 
@@ -266,7 +282,7 @@ public class MainWindow extends JFrame {
 		gbl_servoDriveSettings.rowWeights = new double[] { 0.0, 1.0, Double.MIN_VALUE };
 		servoDriveSettings.setLayout(gbl_servoDriveSettings);
 
-		JComboBox<String> servoDriveComPortCombobox = new JComboBox<>();
+		servoDriveComPortCombobox = new JComboBox<>();
 		GridBagConstraints gbc_servoDriveComPortCombobox = new GridBagConstraints();
 		gbc_servoDriveComPortCombobox.insets = new Insets(0, 0, 5, 0);
 		gbc_servoDriveComPortCombobox.gridx = 0;
@@ -327,5 +343,64 @@ public class MainWindow extends JFrame {
 
 	protected JSpinner getServoFrequencyHzSpinner() {
 		return servoFrequencyHzSpinner;
+	}
+
+	@Override
+	public int getInitialTemperature() {
+		return ((Number) getInitTemperatureSpinner().getValue()).intValue();
+	}
+
+	@Override
+	public int getMinTemperature() {
+		return ((Number) getMinTemperatureSpinner().getValue()).intValue();
+	}
+
+	@Override
+	public int getMaxTemeprature() {
+		return ((Number) getMaxTemperatureSpinner().getValue()).intValue();
+	}
+
+	@Override
+	public boolean isInitiallyUp() {
+		return getInitiallyUpCheckbox().isSelected();
+	}
+
+	@Override
+	public int getTemperatureStep() {
+		return ((Number) getTemperatureStepSpinner().getValue()).intValue();
+	}
+
+	@Override
+	public String getSerialPortName() {
+		return (String) getServoDriveComPortCombobox().getSelectedItem();
+	}
+
+	@Override
+	public double getExperimentFrequency() {
+		return ((Number) getServoFrequencyHzSpinner().getValue()).doubleValue();
+	}
+
+	public JSpinner getInitTemperatureSpinner() {
+		return initTemperatureSpinner;
+	}
+
+	protected JSpinner getMinTemperatureSpinner() {
+		return minTemperatureSpinner;
+	}
+
+	protected JSpinner getMaxTemperatureSpinner() {
+		return maxTemperatureSpinner;
+	}
+
+	protected JSpinner getTemperatureStepSpinner() {
+		return temperatureStepSpinner;
+	}
+
+	protected JCheckBox getInitiallyUpCheckbox() {
+		return initiallyUpCheckbox;
+	}
+
+	protected JComboBox<String> getServoDriveComPortCombobox() {
+		return servoDriveComPortCombobox;
 	}
 }
