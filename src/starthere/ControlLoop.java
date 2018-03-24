@@ -96,10 +96,13 @@ public class ControlLoop implements Callable<ReturnStatus> {
 
 				double linearization = regulationLinearization(errorFilter, CURRENTTIME, temperature);
 				try {
-					DAC.writeAOVoltage(clipper.apply(linearization, 0.0, 4.0));
+					double clippedOutput = clipper.apply(linearization, 0.0, 4.0);
+					DAC.writeAOVoltage(clippedOutput);
 				} catch (UniDaqException e) {
-					e.printStackTrace();
-					return ReturnStatus.CRITICAL;
+					if (e.getCode() != 15) {
+						e.printStackTrace();
+						return ReturnStatus.CRITICAL;
+					}
 				}
 
 				if (Math.abs(SETTED_VALUE - temperatureStabFilter.getValue()) > Math.abs(DEVIATION)) {

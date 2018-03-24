@@ -6,7 +6,54 @@ import java.nio.ShortBuffer;
 
 public class UniDAQLib implements AutoCloseable {
 
+	private static BoardState state = BoardState.UNDEFINED;
+	private static UniDAQLib INSTANCE;
+
+	public synchronized static UniDAQLib instance() throws UniDaqException {
+		if (INSTANCE == null) {
+			synchronized (UniDAQLib.class) {
+				if (INSTANCE == null) {
+					INSTANCE = new UniDAQLib();
+				}
+			}
+		}
+		if (state.equals(BoardState.CLOSED) || state.equals(BoardState.UNDEFINED)) {
+			INSTANCE.open();
+		}
+		return INSTANCE;
+	}
+
+	private UniDAQLib() throws UniDaqException {
+		open();
+	}
+
 	short totalBoards = 0;
+
+	private synchronized void open() throws UniDaqException {
+		IntBuffer dllVersion = IntBuffer.allocate(1);
+		short error = UniDaqLibrary.Ixud_GetDllVersion(dllVersion);
+		System.out.println("DLL VERSION:" + dllVersion.get(0));
+		if (error > 0) {
+			throw new UniDaqException(error);
+		}
+
+		System.out.println("Initializing driver");
+		ShortBuffer totalBoards1 = ShortBuffer.allocate(1);
+		error = UniDaqLibrary.Ixud_DriverInit(totalBoards1);
+		System.out.println("Total number of boards: " + totalBoards1.get(0));
+		if (error > 0) {
+			throw new UniDaqException(error);
+		}
+		this.totalBoards = totalBoards1.get(0);
+		state = BoardState.OPENED;
+	}
+
+	@Override
+	public synchronized void close() throws UniDaqException {
+		// System.out.println("Closing driver");
+		// UniDaqLibrary.Ixud_DriverClose();
+		// state = BoardState.CLOSED;
+	}
 
 	public short getTotalBoards() {
 		return totalBoards;
@@ -21,6 +68,17 @@ public class UniDAQLib implements AutoCloseable {
 			throw new IllegalArgumentException("Parameter boardNumber < 0");
 		}
 		return new ADC(boardNumber);
+	}
+
+	public DAC getDAC(int boardNumber) {
+		if (boardNumber >= totalBoards) {
+			throw new IllegalArgumentException(
+					"Parameter boardNumber (" + boardNumber + ") is out of range (" + (totalBoards - 1) + ")");
+		}
+		if (boardNumber < 0) {
+			throw new IllegalArgumentException("Parameter boardNumber < 0");
+		}
+		return new DAC(boardNumber);
 	}
 
 	public class ADC {
@@ -146,49 +204,6 @@ public class UniDAQLib implements AutoCloseable {
 
 	}
 
-	private static UniDAQLib INSTANCE;
-	
-
-	public static UniDAQLib instance() throws UniDaqException {
-		if (INSTANCE == null) {
-			synchronized (UniDAQLib.class) {
-				if (INSTANCE == null) {
-					INSTANCE = new UniDAQLib();
-				}
-			}
-		}
-		return INSTANCE;
-	}
-
-	private UniDAQLib() throws UniDaqException {
-		IntBuffer dllVersion = IntBuffer.allocate(1);
-		short error = UniDaqLibrary.Ixud_GetDllVersion(dllVersion);
-		System.out.println("DLL VERSION:" + dllVersion.get(0));
-		if (error > 0) {
-			throw new UniDaqException(error);
-		}
-
-		System.out.println("Initializing driver");
-		ShortBuffer totalBoards1 = ShortBuffer.allocate(1);
-		error = UniDaqLibrary.Ixud_DriverInit(totalBoards1);
-		System.out.println("Total number of boards: " + totalBoards1.get(0));
-		if (error > 0) {
-			throw new UniDaqException(error);
-		}
-		this.totalBoards = totalBoards1.get(0);
-	}
-
-	public DAC getDAC(int boardNumber) {
-		if (boardNumber >= totalBoards) {
-			throw new IllegalArgumentException(
-					"Parameter boardNumber (" + boardNumber + ") is out of range (" + (totalBoards - 1) + ")");
-		}
-		if (boardNumber < 0) {
-			throw new IllegalArgumentException("Parameter boardNumber < 0");
-		}
-		return new DAC(boardNumber);
-	}
-
 	public class DAC {
 		private short boardNumber;
 
@@ -229,10 +244,8 @@ public class UniDAQLib implements AutoCloseable {
 		}
 	}
 
-	@Override
-	public void close() throws UniDaqException {
-		System.out.println("Closing driver");
-		UniDaqLibrary.Ixud_DriverClose();
+	private enum BoardState {
+		OPENED, CLOSED, UNDEFINED
 	}
 
 }

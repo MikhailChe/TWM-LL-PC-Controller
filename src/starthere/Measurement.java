@@ -96,7 +96,9 @@ public class Measurement implements Runnable {
 					e.printStackTrace();
 					break;
 				}
-				if (controlLoopReturnStatus == null || ReturnStatus.INTERRUPT.equals(controlLoopReturnStatus)) {
+				if (controlLoopReturnStatus == null || ReturnStatus.INTERRUPT.equals(controlLoopReturnStatus)
+						|| ReturnStatus.CRITICAL.equals(controlLoopReturnStatus)) {
+
 					break;
 				}
 				// *****MEASURE ****///

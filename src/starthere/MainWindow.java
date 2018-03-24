@@ -8,6 +8,8 @@ import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.FileNotFoundException;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import javax.swing.BoxLayout;
@@ -27,6 +29,8 @@ import javax.swing.border.TitledBorder;
 import asdaservo.ServoController;
 import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
+import unidaq.UniDAQLib;
+import unidaq.UniDaqException;
 
 public class MainWindow extends JFrame implements SettingsHolder {
 	private JSpinner servoFrequencyHzSpinner;
@@ -251,6 +255,47 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		experimentStartStopPanel.add(btnStartExperiment);
 
 		JButton btnManualMeasure = new JButton("Manual measure");
+		btnManualMeasure.addActionListener((e) -> {
+			btnManualMeasure.setEnabled(false);
+
+			final Runnable setupPrint = () -> {
+				try {
+					StartHere.setupReadAndPrintExperiment(this, UniDAQLib.instance().getADC(0),
+							new short[] { 0, 2, 4, 6 }, this.getExperimentFrequency(), 64);
+				} catch (FileNotFoundException | InterruptedException | NoSuchPortException | PortInUseException
+						| UniDaqException e1) {
+					e1.printStackTrace();
+				}
+			};
+			final Thread setupPrintThread = new Thread(setupPrint);
+			setupPrintThread.start();
+
+			// TODO: refactor this code. Maybe make it a separate class and pass reenabler
+			// there, IDK.. That look awful
+			final class RecursableCallable {
+				final Callable<Boolean> reenableButton = () -> {
+					setupPrintThread.join(100);
+					if (!setupPrintThread.isAlive()) {
+						btnManualMeasure.setEnabled(true);
+						return true;
+					}
+					return false;
+				};
+
+				public void recurser() {
+					try {
+						if (!reenableButton.call()) {
+							SwingUtilities.invokeLater(this::recurser);
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			final RecursableCallable asd = new RecursableCallable();
+			SwingUtilities.invokeLater(asd::recurser);
+
+		});
 		experimentStartStopPanel.add(btnManualMeasure);
 
 		JPanel rightPanel = new JPanel();

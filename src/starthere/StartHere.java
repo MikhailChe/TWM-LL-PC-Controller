@@ -85,7 +85,12 @@ public class StartHere {
 
 	}
 
-	public static void printData(String filename, final float experimentFrequency, float[][] data) {
+	public static void printData(String filename, final float experimentFrequency, float[][] data)
+			throws InterruptedException {
+
+		if (Thread.interrupted()) {
+			throw new InterruptedException();
+		}
 
 		final double ADC_MAX_VOLTAGE = 10;
 		final double ADC_MAXTICKS = 32768;
