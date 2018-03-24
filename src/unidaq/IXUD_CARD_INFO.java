@@ -75,10 +75,10 @@ public class IXUD_CARD_INFO extends Structure {
 	}
 
 	public static class ByReference extends IXUD_CARD_INFO implements Structure.ByReference {
-
+		//
 	}
 
 	public static class ByValue extends IXUD_CARD_INFO implements Structure.ByValue {
-
+//
 	}
 }

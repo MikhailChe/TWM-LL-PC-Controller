@@ -76,10 +76,10 @@ public class IXUD_DEVICE_INFO extends Structure {
 	}
 
 	public static class ByReference extends IXUD_DEVICE_INFO implements Structure.ByReference {
-
+		//
 	}
 
 	public static class ByValue extends IXUD_DEVICE_INFO implements Structure.ByValue {
-
+		//
 	}
 }
