@@ -1,5 +1,16 @@
 package starthere;
 
+import static starthere.PropertiesNames.ABSOLUTE_MAXIMUM_TEMPERATURE;
+import static starthere.PropertiesNames.ABSOLUTE_MINIMUM_TEMPERATURE;
+import static starthere.PropertiesNames.CURRENT_MAXIMUM_TEMPERATURE;
+import static starthere.PropertiesNames.CURRENT_MINIMUM_TEMPERATURE;
+import static starthere.PropertiesNames.INITIALLY_UP;
+import static starthere.PropertiesNames.INITIAL_TEMPERATURE;
+import static starthere.PropertiesNames.TEMPERATURE_STEP;
+import static starthere.PropertiesNames.fillDefaults;
+import static starthere.PropertiesNames.saveProperties;
+import static starthere.StartHere.Acquisitor;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
@@ -8,10 +19,12 @@ import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.util.concurrent.Callable;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import javax.swing.AbstractButton;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
@@ -23,13 +36,12 @@ import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
 
 import asdaservo.ServoController;
 import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
-import unidaq.UniDAQLib;
 import unidaq.UniDaqException;
 
 public class MainWindow extends JFrame implements SettingsHolder {
@@ -43,10 +55,27 @@ public class MainWindow extends JFrame implements SettingsHolder {
 
 	public MainWindow() {
 
+		Properties properties = new Properties();
+		try (FileInputStream propFile = new FileInputStream("MainWindow.properties")) {
+			properties.load(propFile);
+		} catch (Exception e) {
+			System.err.println("Properties file was not found. Loading defaults");
+		}
+		fillDefaults(properties);
+		saveProperties(properties);
+
+		final int initialTemperature = INITIAL_TEMPERATURE.getIntegerProperty(properties);
+		final int absoluteMinimumTemperature = ABSOLUTE_MINIMUM_TEMPERATURE.getIntegerProperty(properties);
+		final int absoluteMaximumTemperature = ABSOLUTE_MAXIMUM_TEMPERATURE.getIntegerProperty(properties);
+		final int currentMinimumTemperature = CURRENT_MINIMUM_TEMPERATURE.getIntegerProperty(properties);
+		final int currentMaximumTemperature = CURRENT_MAXIMUM_TEMPERATURE.getIntegerProperty(properties);
+		final int temperatureStep = TEMPERATURE_STEP.getIntegerProperty(properties);
+		final boolean isInitiallyUp = INITIALLY_UP.getBooleanProperty(properties);
+
 		JPanel leftPanel = new JPanel();
-		leftPanel.setBorder(new TitledBorder(null,
-				"\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 \u044D\u043A\u0441\u043F\u0435\u0440\u0438\u043C\u0435\u043D\u0442\u0430",
-				TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		leftPanel.setBorder(new TitledBorder(
+				new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)),
+				"Experiment control", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(0, 0, 0)));
 		getContentPane().add(leftPanel, BorderLayout.WEST);
 		GridBagLayout gbl_leftPanel = new GridBagLayout();
 		gbl_leftPanel.columnWidths = new int[] { 0, 0 };
@@ -62,9 +91,9 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		gbc_temperatureRegulationPanel.gridx = 0;
 		gbc_temperatureRegulationPanel.gridy = 0;
 		leftPanel.add(temperatureRegulationPanel, gbc_temperatureRegulationPanel);
-		temperatureRegulationPanel.setBorder(new TitledBorder(null,
-				"\u0420\u0435\u0433\u0443\u043B\u0438\u0440\u043E\u0432\u043A\u0430 \u0442\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u044B",
-				TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		temperatureRegulationPanel.setBorder(new TitledBorder(
+				new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)),
+				"Temperature control", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(0, 0, 0)));
 		GridBagLayout gbl_temperatureRegulationPanel = new GridBagLayout();
 		gbl_temperatureRegulationPanel.columnWidths = new int[] { 0, 64 };
 		gbl_temperatureRegulationPanel.columnWeights = new double[] { 0.0, 1.0 };
@@ -81,7 +110,8 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		temperatureRegulationPanel.add(initialTemperatureLabel, gbc_initialTemperatureLabel);
 
 		initTemperatureSpinner = new JSpinner();
-		initTemperatureSpinner.setModel(new SpinnerNumberModel(500, 400, 1800, 1));
+		initTemperatureSpinner.setModel(
+				new SpinnerNumberModel(initialTemperature, absoluteMinimumTemperature, absoluteMaximumTemperature, 1));
 		GridBagConstraints gbc_initTemperatureSpinner = new GridBagConstraints();
 		gbc_initTemperatureSpinner.fill = GridBagConstraints.HORIZONTAL;
 		gbc_initTemperatureSpinner.insets = new Insets(0, 0, 5, 0);
@@ -89,15 +119,23 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		gbc_initTemperatureSpinner.gridy = 0;
 		temperatureRegulationPanel.add(initTemperatureSpinner, gbc_initTemperatureSpinner);
 
+		initTemperatureSpinner.addChangeListener((e) -> {
+			int newInitialTemperature = (int) initTemperatureSpinner.getValue();
+			INITIAL_TEMPERATURE.putProperty(properties, newInitialTemperature);
+			saveProperties(properties);
+		});
+
 		JLabel minTemperatureLabel = new JLabel("Minimal temperature");
 		GridBagConstraints gbc_minTemperatureLabel = new GridBagConstraints();
 		gbc_minTemperatureLabel.anchor = GridBagConstraints.EAST;
 		gbc_minTemperatureLabel.insets = new Insets(0, 0, 5, 5);
 		gbc_minTemperatureLabel.gridx = 0;
 		gbc_minTemperatureLabel.gridy = 1;
+
 		temperatureRegulationPanel.add(minTemperatureLabel, gbc_minTemperatureLabel);
 		minTemperatureSpinner = new JSpinner();
-		minTemperatureSpinner.setModel(new SpinnerNumberModel(490, 400, 1800, 1));
+		minTemperatureSpinner.setModel(new SpinnerNumberModel(currentMinimumTemperature, absoluteMinimumTemperature,
+				currentMaximumTemperature, 1));
 		GridBagConstraints gbc_minTemperatureSpinner = new GridBagConstraints();
 		gbc_minTemperatureSpinner.fill = GridBagConstraints.HORIZONTAL;
 		gbc_minTemperatureSpinner.insets = new Insets(0, 0, 5, 0);
@@ -114,7 +152,8 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		temperatureRegulationPanel.add(maxTemperatureLabel, gbc_maxTemperatureLabel);
 
 		maxTemperatureSpinner = new JSpinner();
-		maxTemperatureSpinner.setModel(new SpinnerNumberModel(1650, 400, 1800, 1));
+		maxTemperatureSpinner.setModel(new SpinnerNumberModel(currentMaximumTemperature, currentMinimumTemperature,
+				absoluteMaximumTemperature, 1));
 		GridBagConstraints gbc_maxTemperatureSpinner = new GridBagConstraints();
 		gbc_maxTemperatureSpinner.fill = GridBagConstraints.HORIZONTAL;
 		gbc_maxTemperatureSpinner.insets = new Insets(0, 0, 5, 0);
@@ -122,22 +161,47 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		gbc_maxTemperatureSpinner.gridy = 2;
 		temperatureRegulationPanel.add(maxTemperatureSpinner, gbc_maxTemperatureSpinner);
 
-		JLabel temperatureStep = new JLabel("Temperature step");
+		// Redefine minimum and maximum values of minTemperatureSpinner and
+		// maxTemperatureSpinner based on it's values
+
+		minTemperatureSpinner.addChangeListener((e) -> {
+			SpinnerNumberModel model = (SpinnerNumberModel) maxTemperatureSpinner.getModel();
+			int value = (int) minTemperatureSpinner.getValue();
+			CURRENT_MINIMUM_TEMPERATURE.putProperty(properties, value);
+			saveProperties(properties);
+			model.setMinimum(value);
+		});
+
+		maxTemperatureSpinner.addChangeListener((e) -> {
+			SpinnerNumberModel model = (SpinnerNumberModel) minTemperatureSpinner.getModel();
+			int value = (int) maxTemperatureSpinner.getValue();
+			CURRENT_MAXIMUM_TEMPERATURE.putProperty(properties, value);
+			saveProperties(properties);
+			model.setMaximum(value);
+		});
+
+		JLabel temperatureStepLabel = new JLabel("Temperature step");
 		GridBagConstraints gbc_temperatureStep = new GridBagConstraints();
 		gbc_temperatureStep.anchor = GridBagConstraints.EAST;
 		gbc_temperatureStep.insets = new Insets(0, 0, 5, 5);
 		gbc_temperatureStep.gridx = 0;
 		gbc_temperatureStep.gridy = 3;
-		temperatureRegulationPanel.add(temperatureStep, gbc_temperatureStep);
+		temperatureRegulationPanel.add(temperatureStepLabel, gbc_temperatureStep);
 
 		temperatureStepSpinner = new JSpinner();
-		temperatureStepSpinner.setModel(new SpinnerNumberModel(10, 1, 100, 1));
+		temperatureStepSpinner.setModel(new SpinnerNumberModel(temperatureStep, 1, 100, 1));
 		GridBagConstraints gbc_temperatureStepSpinner = new GridBagConstraints();
 		gbc_temperatureStepSpinner.fill = GridBagConstraints.HORIZONTAL;
 		gbc_temperatureStepSpinner.insets = new Insets(0, 0, 5, 0);
 		gbc_temperatureStepSpinner.gridx = 1;
 		gbc_temperatureStepSpinner.gridy = 3;
 		temperatureRegulationPanel.add(temperatureStepSpinner, gbc_temperatureStepSpinner);
+
+		temperatureStepSpinner.addChangeListener((e) -> {
+			int newTemperatureStep = (int) temperatureStepSpinner.getValue();
+			TEMPERATURE_STEP.putProperty(properties, newTemperatureStep);
+			saveProperties(properties);
+		});
 
 		JLabel initiallyUpLabel = new JLabel("Initially up?");
 		GridBagConstraints gbc_initiallyUpLabel = new GridBagConstraints();
@@ -148,17 +212,23 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		temperatureRegulationPanel.add(initiallyUpLabel, gbc_initiallyUpLabel);
 
 		initiallyUpCheckbox = new JCheckBox();
-		initiallyUpCheckbox.setSelected(true);
+		initiallyUpCheckbox.setSelected(isInitiallyUp);
 		GridBagConstraints gbc_initiallyUpCheckbox = new GridBagConstraints();
 		gbc_initiallyUpCheckbox.fill = GridBagConstraints.HORIZONTAL;
 		gbc_initiallyUpCheckbox.gridx = 1;
 		gbc_initiallyUpCheckbox.gridy = 4;
 		temperatureRegulationPanel.add(initiallyUpCheckbox, gbc_initiallyUpCheckbox);
 
+		initiallyUpCheckbox.addChangeListener((e) -> {
+			boolean newFlag = isInitiallyUp();
+			INITIALLY_UP.putProperty(properties, newFlag);
+			saveProperties(properties);
+		});
+
 		JPanel temperatureStabilizationPanel = new JPanel();
-		temperatureStabilizationPanel.setBorder(new TitledBorder(null,
-				"\u0421\u0442\u0430\u0431\u0438\u043B\u0438\u0437\u0430\u0446\u0438\u044F \u0442\u0435\u043C\u043F\u0435\u0440\u0430\u0442\u0443\u0440\u044B",
-				TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		temperatureStabilizationPanel.setBorder(new TitledBorder(
+				new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)),
+				"Temperature stabilization", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(0, 0, 0)));
 		GridBagConstraints gbc_temperatureStabilizationPanel = new GridBagConstraints();
 		gbc_temperatureStabilizationPanel.insets = new Insets(0, 0, 5, 0);
 		gbc_temperatureStabilizationPanel.fill = GridBagConstraints.BOTH;
@@ -256,52 +326,30 @@ public class MainWindow extends JFrame implements SettingsHolder {
 
 		JButton btnManualMeasure = new JButton("Manual measure");
 		btnManualMeasure.addActionListener((e) -> {
-			btnManualMeasure.setEnabled(false);
+			AbstractButton source = (AbstractButton) e.getSource();
+			source.setEnabled(false);
 
 			final Runnable setupPrint = () -> {
 				try {
-					StartHere.setupReadAndPrintExperiment(this, UniDAQLib.instance().getADC(0),
-							new short[] { 0, 2, 4, 6 }, this.getExperimentFrequency(), 64);
+					Acquisitor.setupReadAndPrintExperiment(new short[] { 0, 2, 4, 6 }, this.getExperimentFrequency(),
+							64);
 				} catch (FileNotFoundException | InterruptedException | NoSuchPortException | PortInUseException
 						| UniDaqException e1) {
 					e1.printStackTrace();
 				}
 			};
-			final Thread setupPrintThread = new Thread(setupPrint);
-			setupPrintThread.start();
-
-			// TODO: refactor this code. Maybe make it a separate class and pass reenabler
-			// there, IDK.. That look awful
-			final class RecursableCallable {
-				final Callable<Boolean> reenableButton = () -> {
-					setupPrintThread.join(100);
-					if (!setupPrintThread.isAlive()) {
-						btnManualMeasure.setEnabled(true);
-						return true;
-					}
-					return false;
-				};
-
-				public void recurser() {
-					try {
-						if (!reenableButton.call()) {
-							SwingUtilities.invokeLater(this::recurser);
-						}
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			}
-			final RecursableCallable asd = new RecursableCallable();
-			SwingUtilities.invokeLater(asd::recurser);
-
+			new Thread(() -> {
+				setupPrint.run();
+				SwingUtilities.invokeLater(() -> source.setEnabled(true));
+			}).start();
 		});
+
 		experimentStartStopPanel.add(btnManualMeasure);
 
 		JPanel rightPanel = new JPanel();
-		rightPanel.setBorder(new TitledBorder(null,
-				"\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 \u043E\u0431\u043E\u0440\u0443\u0434\u043E\u0432\u0430\u043D\u0438\u044F",
-				TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		rightPanel.setBorder(new TitledBorder(
+				new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)),
+				"Hardware configuration", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(0, 0, 0)));
 		getContentPane().add(rightPanel, BorderLayout.EAST);
 		GridBagLayout gbl_rightPanel = new GridBagLayout();
 		gbl_rightPanel.columnWidths = new int[] { 139 };
@@ -311,9 +359,9 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		rightPanel.setLayout(gbl_rightPanel);
 
 		JPanel servoDriveSettings = new JPanel();
-		servoDriveSettings.setBorder(new TitledBorder(UIManager.getBorder("TitledBorder.border"),
-				"\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 \u0441\u0435\u0440\u0432\u043E-\u043F\u0440\u0438\u0432\u043E\u0434\u0430",
-				TitledBorder.LEADING, TitledBorder.TOP, null, new Color(0, 0, 0)));
+		servoDriveSettings.setBorder(new TitledBorder(
+				new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)),
+				"Servo-drive configuration", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(0, 0, 0)));
 		GridBagConstraints gbc_servoDriveSettings = new GridBagConstraints();
 		gbc_servoDriveSettings.insets = new Insets(0, 0, 5, 0);
 		gbc_servoDriveSettings.fill = GridBagConstraints.BOTH;

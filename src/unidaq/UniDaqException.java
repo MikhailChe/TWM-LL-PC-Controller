@@ -1,6 +1,6 @@
 package unidaq;
 
-public class UniDaqException extends Exception {
+public class UniDaqException extends RuntimeException {
 
 	private static final long serialVersionUID = -7468665944978099617L;
 

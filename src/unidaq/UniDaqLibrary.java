@@ -26,7 +26,7 @@ import com.sun.jna.ptr.ShortByReference;
  * <a href="http://rococoa.dev.java.net/">Rococoa</a>, or
  * <a href="http://jna.dev.java.net/">JNA</a>.
  */
-public class UniDaqLibrary implements Library {
+class UniDaqLibrary implements Library {
 	public static final String JNA_LIBRARY_NAME = "UniDaq";
 	public static final NativeLibrary JNA_NATIVE_LIB = NativeLibrary.getInstance(UniDaqLibrary.JNA_LIBRARY_NAME);
 	static {

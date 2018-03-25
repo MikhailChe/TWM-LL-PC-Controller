@@ -1,5 +1,7 @@
 package starthere;
 
+import static starthere.StartHere.Acquisitor;
+
 import java.io.FileNotFoundException;
 import java.util.concurrent.TimeUnit;
 
@@ -12,7 +14,6 @@ import starthere.ControlLoop.ReturnStatus;
 import unidaq.UniDAQLib;
 import unidaq.UniDAQLib.ADC;
 import unidaq.UniDAQLib.DAC;
-import unidaq.UniDAQManager;
 import unidaq.UniDaqException;
 
 public class Measurement implements Runnable {
@@ -56,11 +57,13 @@ public class Measurement implements Runnable {
 	public Measurement(SettingsHolder settings) {
 		this.settings = settings;
 
-		ADC = UniDAQManager.instance().getADC();
-		DAC = UniDAQManager.instance().getDAC();
+		ADC = StartHere.ADC;
+		DAC = StartHere.DAC;
 
 		outputSlopeLimit = new SlopeLimiter(1, 0);
-		regulator = new PID(.04, 1 / 100.0, .1).setProportionalBounds(-5, 5).setIntegralBounds(-5, 5)
+		regulator = new PID(.04, 1 / 100.0, .1)
+				.setProportionalBounds(-5, 5)
+				.setIntegralBounds(-5, 5)
 				.setDifferentialBounds(-.5, .5);
 
 		ctrlLoop = new ControlLoop(settings.getInitialTemperature(), 3, TimeUnit.SECONDS, 5, regulator,
@@ -103,7 +106,7 @@ public class Measurement implements Runnable {
 				}
 				// *****MEASURE ****///
 				try {
-					StartHere.setupReadAndPrintExperiment(settings, ADC, new short[] { 0, 2, 4, 6 },
+					Acquisitor.setupReadAndPrintExperiment(new short[] { 0, 2, 4, 6 },
 							settings.getExperimentFrequency(), 64);
 				} catch (FileNotFoundException | NoSuchPortException | PortInUseException e) {
 					e.printStackTrace();
