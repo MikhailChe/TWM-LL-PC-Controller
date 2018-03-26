@@ -19,7 +19,7 @@ import unidaq.UniDaqLibrary.UCHAR;
  * <a href="http://rococoa.dev.java.net/">Rococoa</a>, or
  * <a href="http://jna.dev.java.net/">JNA</a>.
  */
-public class IXUD_DEVICE_INFO extends Structure {
+class IXUD_DEVICE_INFO extends Structure {
 	/** Structure Size */
 	public int dwSize;
 	/** Vendor ID */

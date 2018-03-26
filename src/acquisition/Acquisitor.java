@@ -1,5 +1,6 @@
 package acquisition;
 
+import static log.GuiLogger.log;
 import static starthere.StartHere.ADC;
 
 import java.io.ByteArrayOutputStream;
@@ -94,6 +95,10 @@ public class Acquisitor {
 		final int NUM_CHANNELS = channels.length;
 		final float sampleFrequency = (experimentFrequency * 1000) * NUM_CHANNELS;
 		final int samplesPerChannel = 1000 * numPeriods;
+
+		log().println("Reading " + NUM_CHANNELS + " channels");
+		log().println("Sample frequency = " + sampleFrequency + "Hz");
+
 		double[][] vals = new double[samplesPerChannel][NUM_CHANNELS];
 		try {
 			ChannelConfig[] configuration = new ChannelConfig[NUM_CHANNELS];
@@ -101,39 +106,34 @@ public class Acquisitor {
 				configuration[i] = ChannelConfig.BI_10V;
 			}
 			ADC.startAIScan(channels, configuration, sampleFrequency, samplesPerChannel);
-
-			// acquire samples so that we dont wait longer than .5s and can interrupt at any
-			// time
+			// read in part no longer than .5s
 			int totalSamples = samplesPerChannel * NUM_CHANNELS;
-			int acquiredSamples = 0;
-			int samplesForHalfSeconds = Math.max(((((int) sampleFrequency) / 2) / NUM_CHANNELS) * NUM_CHANNELS,
-					NUM_CHANNELS);
 			int sample = 0;
-			while (acquiredSamples < totalSamples) {
-				int readSamples = Math.min(samplesForHalfSeconds, totalSamples - acquiredSamples);
-				double[] buffer = toDoubleArray(ADC.getAIBuffer(readSamples));
+			log().println("Must read " + totalSamples + " samples total at " + experimentFrequency + "Hz");
+			try {
+				double[] flatBuffer = toDoubleArray(ADC.getAIBuffer(totalSamples));
 
-				acquiredSamples += readSamples;
-
-				for (int flatBuffer = 0; flatBuffer < buffer.length;) {
-					for (int channel = 0; flatBuffer < NUM_CHANNELS; channel++) {
-						vals[sample][channel] = buffer[flatBuffer + channel];
+				for (int flatBufferIndex = 0; flatBufferIndex < totalSamples;) {
+					for (int channel = 0; channel < NUM_CHANNELS; channel++) {
+						vals[sample][channel] = flatBuffer[flatBufferIndex + channel];
 					}
-					flatBuffer += NUM_CHANNELS;
+					flatBufferIndex += NUM_CHANNELS;
 					sample++;
 				}
 
 				if (Thread.interrupted())
 					throw new InterruptedException();
+			} finally {
+				ADC.stopAI();
 			}
-			ADC.stopAI();
+			log().println("Read all");
 		} catch (UniDaqException e) {
 			e.printStackTrace();
 		}
 		return vals;
 	}
 
-	public static double[] toDoubleArray(float[] arr) {
+	public static double[] toDoubleArray(final float[] arr) {
 		double[] out = new double[arr.length];
 		for (int i = 0; i < out.length; i++) {
 			out[i] = arr[i];

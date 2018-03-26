@@ -8,12 +8,14 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import filter.LowPass;
+import log.GuiLogger;
 import model.thermocouple.graduate.Graduate;
 import model.thermocouple.graduate.GraduateFactory;
 import regulator.PID;
 import regulator.SlopeLimiter;
 import starthere.ControlLoop.ReturnStatus;
 import starthere.StartHere.TriFunction;
+import starthere.widgets.TemperatureDisplay;
 import unidaq.ChannelConfig;
 import unidaq.UniDAQLib.ADC;
 import unidaq.UniDAQLib.DAC;
@@ -92,6 +94,9 @@ public class ControlLoop implements Callable<ReturnStatus> {
 					return ReturnStatus.CRITICAL;
 				}
 				temperature = temperatureFilter.filter(temperature);
+
+				TemperatureDisplay.instance().updateTempearture(temperature);
+
 				temperatureStabFilter.filter(temperature);
 
 				double linearization = regulationLinearization(errorFilter, CURRENTTIME, temperature);
@@ -114,6 +119,7 @@ public class ControlLoop implements Callable<ReturnStatus> {
 				}
 				// TODO: update temperature on GUI right here
 				if (Thread.interrupted()) {
+					GuiLogger.log().println("Control loop detected interrupt");
 					return INTERRUPT;
 				}
 			}

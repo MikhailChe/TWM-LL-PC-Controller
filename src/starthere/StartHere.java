@@ -27,11 +27,16 @@ public class StartHere {
 
 			window.pack();
 			window.setMinimumSize(window.getSize());
+			window.setLocationRelativeTo(null);
 			window.setVisible(true);
 
 			while (window.isVisible()) {
 				Thread.yield();
-				Thread.sleep(1000);
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
 			window.dispose();
 			if (DAC != null)

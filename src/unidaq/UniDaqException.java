@@ -22,74 +22,76 @@ public class UniDaqException extends RuntimeException {
 
 enum UniDaqReturnValue {
 	// Return code
-	Ixud_NoErr(codeToString(0)), // Correct
-	Ixud_OpenDriverErr(codeToString(1)), // Open driver error
-	Ixud_PnPDriverErr(codeToString(2)), // Plug & Play error
-	Ixud_DriverNoOpen(codeToString(3)), // The driver was not open
-	Ixud_GetDriverVersionErr(codeToString(4)), // Receive driver version error
-	Ixud_ExceedBoardNumber(codeToString(5)), // Board number error
-	Ixud_FindBoardErr(codeToString(6)), // No board found
-	Ixud_BoardMappingErr(codeToString(7)), // Board Mapping error
-	Ixud_DIOModesErr(codeToString(8)), // Digital input/output mode setting error
-	Ixud_InvalidAddress(codeToString(9)), // Invalid address
-	Ixud_InvalidSize(codeToString(10)), // Invalid size
-	Ixud_InvalidPortNumber(codeToString(11)), // Invalid port number
-	Ixud_UnSupportedModel(codeToString(12)), // This board model is not supported
-	Ixud_UnSupportedFun(codeToString(13)), // This function is not supported
-	Ixud_InvalidChannelNumber(codeToString(14)), // Invalid channel number
-	Ixud_InvalidValue(codeToString(15)), // Invalid value
-	Ixud_InvalidMode(codeToString(16)), // Invalid mode
-	Ixud_GetAIStatusTimeOut(codeToString(17)), // A timeout occurred while receiving the status of the analog input
-	Ixud_TimeOutErr(codeToString(18)), // Timeout error
-	Ixud_CfgCodeIndexErr(codeToString(19)), // A compatible configuration code table index could not be found
-	Ixud_ADCCTLTimeoutErr(codeToString(20)), // ADC controller a timeout error
-	Ixud_FindPCIIndexErr(codeToString(21)), // A compatible PCI table index value could not be found
-	Ixud_InvalidSetting(codeToString(22)), // Invalid setting value
-	Ixud_AllocateMemErr(codeToString(23)), // Error while allocating the memory space
-	Ixud_InstallEventErr(codeToString(24)), // Error while installing the interrupt event
-	Ixud_InstallIrqErr(codeToString(25)), // Error while installing the interrupt IRQ
-	Ixud_RemoveIrqErr(codeToString(26)), // Error while removing the interrupt IRQ
-	Ixud_ClearIntCountErr(codeToString(27)), // Error while the clear interrupt count
-	Ixud_GetSysBufferErr(codeToString(28)), // Error while retrieving the system buffer
-	Ixud_CreateEventErr(codeToString(29)), // Error while create the event
-	Ixud_UnSupportedResolution(codeToString(30)), // Resolution not supported
-	Ixud_CreateThreadErr(codeToString(31)), // Error while create the thread
-	Ixud_ThreadTimeOutErr(codeToString(32)), // Thread timeout error
-	Ixud_FIFOOverFlowErr(codeToString(33)), // FIFO overflow error
-	Ixud_FIFOTimeOutErr(codeToString(34)), // FIFO timeout error
-	Ixud_GetIntInstStatus(codeToString(35)), // Retrieves the status of the interrupt installation
-	Ixud_GetBufStatus(codeToString(36)), // Retrieves the status of the system buffer
-	Ixud_SetBufCountErr(codeToString(37)), // Error while setting the buffer count
-	Ixud_SetBufInfoErr(codeToString(38)), // Error while setting the buffer data
-	Ixud_FindCardIDErr(codeToString(39)), // Card ID code could not be found
-	Ixud_EventThreadErr(codeToString(40)), // Event Thread error
-	Ixud_AutoCreateEventErr(codeToString(41)), // Error while automatically creating an event
-	Ixud_RegThreadErr(codeToString(42)), // Register Thread error
-	Ixud_SearchEventErr(codeToString(43)), // Search Event error
-	Ixud_FifoResetErr(codeToString(44)), // Error while resetting the FIFO
-	Ixud_InvalidBlock(codeToString(45)), // Invalid EEPROM block
-	Ixud_InvalidAddr(codeToString(46)), // Invalid EEPROM address
-	Ixud_AcqireSpinLock(codeToString(47)), // Error while acquiring spin lock
-	Ixud_ReleaseSpinLock(codeToString(48)), // Error while releasing spin lock
-	Ixud_SetControlErr(codeToString(49)), // Analog input setting error
-	Ixud_InvalidChannels(codeToString(50)), // Invalid channel number
-	Ixud_SearchCardErr(codeToString(51)), // Invalid model number
-	Ixud_SetMapAddressErr(codeToString(52)), // Error while setting the mapping address
-	Ixud_ReleaseMapAddressErr(codeToString(53)), // Error while releasing the mapping address
-	Ixud_InvalidOffset(codeToString(54)), // Invalid memory offset
-	Ixud_ShareHandleErr(codeToString(55)), // Open the share memory fail
-	Ixud_InvalidDataCount(codeToString(56)), // Invalid data count
-	Ixud_WriteEEPErr(codeToString(57)), // Error while writing the EEPROM
-	Ixud_CardIOErr(codeToString(58)), // CardIO error
-	Ixud_IOErr(codeToString(59)), // MemoryIO error
-	Ixud_SetScanChannelErr(codeToString(60)), // Set channel scan number error
-	Ixud_SetScanConfigErr(codeToString(61)), // Set channel scan config error
-	Ixud_GetMMIOMapStatus(codeToString(62));//
+	Ixud_NoErr(0), // Correct
+	Ixud_OpenDriverErr(1), // Open driver error
+	Ixud_PnPDriverErr(2), // Plug & Play error
+	Ixud_DriverNoOpen(3), // The driver was not open
+	Ixud_GetDriverVersionErr(4), // Receive driver version error
+	Ixud_ExceedBoardNumber(5), // Board number error
+	Ixud_FindBoardErr(6), // No board found
+	Ixud_BoardMappingErr(7), // Board Mapping error
+	Ixud_DIOModesErr(8), // Digital input/output mode setting error
+	Ixud_InvalidAddress(9), // Invalid address
+	Ixud_InvalidSize(10), // Invalid size
+	Ixud_InvalidPortNumber(11), // Invalid port number
+	Ixud_UnSupportedModel(12), // This board model is not supported
+	Ixud_UnSupportedFun(13), // This function is not supported
+	Ixud_InvalidChannelNumber(14), // Invalid channel number
+	Ixud_InvalidValue(15), // Invalid value
+	Ixud_InvalidMode(16), // Invalid mode
+	Ixud_GetAIStatusTimeOut(17), // A timeout occurred while receiving the status of the analog input
+	Ixud_TimeOutErr(18), // Timeout error
+	Ixud_CfgCodeIndexErr(19), // A compatible configuration code table index could not be found
+	Ixud_ADCCTLTimeoutErr(20), // ADC controller a timeout error
+	Ixud_FindPCIIndexErr(21), // A compatible PCI table index value could not be found
+	Ixud_InvalidSetting(22), // Invalid setting value
+	Ixud_AllocateMemErr(23), // Error while allocating the memory space
+	Ixud_InstallEventErr(24), // Error while installing the interrupt event
+	Ixud_InstallIrqErr(25), // Error while installing the interrupt IRQ
+	Ixud_RemoveIrqErr(26), // Error while removing the interrupt IRQ
+	Ixud_ClearIntCountErr(27), // Error while the clear interrupt count
+	Ixud_GetSysBufferErr(28), // Error while retrieving the system buffer
+	Ixud_CreateEventErr(29), // Error while create the event
+	Ixud_UnSupportedResolution(30), // Resolution not supported
+	Ixud_CreateThreadErr(31), // Error while create the thread
+	Ixud_ThreadTimeOutErr(32), // Thread timeout error
+	Ixud_FIFOOverFlowErr(33), // FIFO overflow error
+	Ixud_FIFOTimeOutErr(34), // FIFO timeout error
+	Ixud_GetIntInstStatus(35), // Retrieves the status of the interrupt installation
+	Ixud_GetBufStatus(36), // Retrieves the status of the system buffer
+	Ixud_SetBufCountErr(37), // Error while setting the buffer count
+	Ixud_SetBufInfoErr(38), // Error while setting the buffer data
+	Ixud_FindCardIDErr(39), // Card ID code could not be found
+	Ixud_EventThreadErr(40), // Event Thread error
+	Ixud_AutoCreateEventErr(41), // Error while automatically creating an event
+	Ixud_RegThreadErr(42), // Register Thread error
+	Ixud_SearchEventErr(43), // Search Event error
+	Ixud_FifoResetErr(44), // Error while resetting the FIFO
+	Ixud_InvalidBlock(45), // Invalid EEPROM block
+	Ixud_InvalidAddr(46), // Invalid EEPROM address
+	Ixud_AcqireSpinLock(47), // Error while acquiring spin lock
+	Ixud_ReleaseSpinLock(48), // Error while releasing spin lock
+	Ixud_SetControlErr(49), // Analog input setting error
+	Ixud_InvalidChannels(50), // Invalid channel number
+	Ixud_SearchCardErr(51), // Invalid model number
+	Ixud_SetMapAddressErr(52), // Error while setting the mapping address
+	Ixud_ReleaseMapAddressErr(53), // Error while releasing the mapping address
+	Ixud_InvalidOffset(54), // Invalid memory offset
+	Ixud_ShareHandleErr(55), // Open the share memory fail
+	Ixud_InvalidDataCount(56), // Invalid data count
+	Ixud_WriteEEPErr(57), // Error while writing the EEPROM
+	Ixud_CardIOErr(58), // CardIO error
+	Ixud_IOErr(59), // MemoryIO error
+	Ixud_SetScanChannelErr(60), // Set channel scan number error
+	Ixud_SetScanConfigErr(61), // Set channel scan config error
+	Ixud_GetMMIOMapStatus(62);//
 
-	private String codename;
+	private String codeName;
+	private int codeNumber;
 
-	UniDaqReturnValue(String codename) {
-		this.codename = codename;
+	UniDaqReturnValue(int codeNumber) {
+		this.codeNumber = codeNumber;
+		this.codeName = codeToString(codeNumber);
 	}
 
 	static String codeToString(int code) {
@@ -226,8 +228,12 @@ enum UniDaqReturnValue {
 		}
 	}
 
+	public int getCodeNumber() {
+		return codeNumber;
+	}
+
 	@Override
 	public String toString() {
-		return this.codename;
+		return this.codeName;
 	}
 }

@@ -1,5 +1,6 @@
 package starthere;
 
+import static log.GuiLogger.log;
 import static starthere.PropertiesNames.ABSOLUTE_MAXIMUM_TEMPERATURE;
 import static starthere.PropertiesNames.ABSOLUTE_MINIMUM_TEMPERATURE;
 import static starthere.PropertiesNames.CURRENT_MAXIMUM_TEMPERATURE;
@@ -42,6 +43,7 @@ import javax.swing.border.TitledBorder;
 import asdaservo.ServoController;
 import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
+import starthere.widgets.TemperatureDisplay;
 import unidaq.UniDaqException;
 
 public class MainWindow extends JFrame implements SettingsHolder {
@@ -399,12 +401,15 @@ public class MainWindow extends JFrame implements SettingsHolder {
 				try (ServoController servo = new ServoController(comboBoxObj.toString())) {
 					if (e.getActionCommand().contains("Start")) {
 						servo.start();
+						log().println("Start servo");
 						Object speedValue = getServoFrequencyHzSpinner().getValue();
 						if (speedValue instanceof Number) {
 							servo.writeSpeed(((Number) speedValue).doubleValue());
+							log().println("Freq = " + speedValue + "Hz");
 						}
 					} else if (e.getActionCommand().equals("Stop")) {
 						servo.stop();
+						log().println("Stop servo");
 					}
 				} catch (NoSuchPortException e1) {
 					e1.printStackTrace();
@@ -432,6 +437,12 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		JPanel centerPanel = new JPanel();
 		getContentPane().add(centerPanel, BorderLayout.CENTER);
 		centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+
+		JPanel loggerPanel = log().createLogger();
+		centerPanel.add(loggerPanel);
+
+		JPanel displayTemperature = TemperatureDisplay.instance().createDisplay();
+		centerPanel.add(displayTemperature, BorderLayout.NORTH);
 	}
 
 	protected JSpinner getServoFrequencyHzSpinner() {
