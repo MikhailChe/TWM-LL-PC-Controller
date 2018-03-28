@@ -1,6 +1,5 @@
 package starthere;
 
-import static log.GuiLogger.log;
 import static starthere.PropertiesNames.ABSOLUTE_MAXIMUM_TEMPERATURE;
 import static starthere.PropertiesNames.ABSOLUTE_MINIMUM_TEMPERATURE;
 import static starthere.PropertiesNames.CURRENT_MAXIMUM_TEMPERATURE;
@@ -11,6 +10,7 @@ import static starthere.PropertiesNames.TEMPERATURE_STEP;
 import static starthere.PropertiesNames.fillDefaults;
 import static starthere.PropertiesNames.saveProperties;
 import static starthere.StartHere.Acquisitor;
+import static starthere.widgets.log.GuiLogger.log;
 
 import java.awt.BorderLayout;
 import java.awt.Color;

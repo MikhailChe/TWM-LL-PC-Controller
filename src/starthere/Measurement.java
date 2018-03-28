@@ -1,7 +1,7 @@
 package starthere;
 
-import static log.GuiLogger.log;
 import static starthere.StartHere.Acquisitor;
+import static starthere.widgets.log.GuiLogger.log;
 
 import java.io.FileNotFoundException;
 import java.util.concurrent.TimeUnit;
@@ -9,10 +9,10 @@ import java.util.concurrent.TimeUnit;
 import asdaservo.ServoController;
 import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
-import log.GuiLogger;
 import regulator.PID;
 import regulator.SlopeLimiter;
 import starthere.ControlLoop.ReturnStatus;
+import starthere.widgets.log.GuiLogger;
 import unidaq.UniDAQLib.ADC;
 import unidaq.UniDAQLib.DAC;
 import unidaq.UniDaqException;
