@@ -63,7 +63,8 @@ public class CtrlAndMeasurementCycle implements Runnable {
 	}
 
 	public synchronized static void manualMeasurements(SettingsHolder settings) {
-
+		// TODO: to be implemented
+		throw new UnsupportedOperationException("Not yet implemented" + settings.toString());
 	}
 
 	public CtrlAndMeasurementCycle(SettingsHolder settings) {
@@ -73,9 +74,7 @@ public class CtrlAndMeasurementCycle implements Runnable {
 		DAC = StartHere.DAC;
 
 		outputSlopeLimit = new SlopeLimiter(1, 0);
-		regulator = new PID(.04, 1 / 100.0, .1)
-				.setProportionalBounds(-5, 5)
-				.setIntegralBounds(-5, 5)
+		regulator = new PID(.04, 1 / 100.0, .1).setProportionalBounds(-5, 5).setIntegralBounds(-5, 5)
 				.setDifferentialBounds(-.5, .5);
 
 		ctrlLoop = new ControlLoop(settings.getInitialTemperature(), 3, TimeUnit.SECONDS, 5, regulator,
