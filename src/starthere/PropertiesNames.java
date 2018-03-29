@@ -15,11 +15,11 @@ enum PropertiesNames {
 	CURRENT_MAXIMUM_TEMPERATURE(1650), //
 	TEMPERATURE_STEP(10), //
 	INITIALLY_UP(true), //
-	TEMPERATURE_STABILITY_K(3), //
+	TEMPERATURE_STABILITY_K(.5), //
 	TEMPERATURE_STABILITY_TIMEUNIT(TimeUnit.SECONDS), //
 	TEMPERATURE_STABILITY_TIME(4), //
 	SERVODRIVE_COMPORT("COM1"), //
-	SERVIDRIVE_FREQUENCY(5);
+	SERVODRIVE_FREQUENCY(5.0);
 
 	private Object defaultValue;
 
@@ -37,17 +37,24 @@ enum PropertiesNames {
 		prop.computeIfAbsent(this.name(), (s) -> value.toString());
 	}
 
-	<T extends Object> T putProperty(Properties prop, T value) {
-		prop.put(this.name(), value.toString());
-		return value;
+	<T extends Object> void putProperty(Properties prop, T value) {
+		if (value.getClass().getSuperclass().isEnum()) {
+			Enum<?> e = (Enum<?>) value;
+			prop.put(this.name(), e.name());
+			System.out.println("New enum property: " + e.name());
+
+		} else {
+			System.out.println("New object property: " + value.toString());
+			prop.put(this.name(), value.toString());
+		}
 	}
 
-	Object getProperty(Properties prop) {
+	String getProperty(Properties prop) {
 		return prop.getProperty(this.name());
 	}
 
 	Integer getIntegerProperty(Properties prop) {
-		String value = prop.getProperty(this.name());
+		String value = this.getProperty(prop);
 		if (value == null)
 			return null;
 		try {
@@ -65,14 +72,43 @@ enum PropertiesNames {
 		}
 	}
 
+	Double getDoubleProperty(Properties prop) {
+		String value = this.getProperty(prop);
+		if (value == null)
+			return null;
+		try {
+			Double out = Double.parseDouble(value);
+			return out;
+		} catch (NumberFormatException e) {
+			e.printStackTrace();
+			try {
+				Integer out = Integer.parseInt(value);
+				return out.doubleValue();
+			} catch (NumberFormatException e2) {
+				e2.printStackTrace();
+				return null;
+			}
+		}
+	}
+
 	Boolean getBooleanProperty(Properties prop) {
-		String value = prop.getProperty(this.name());
+		String value = this.getProperty(prop);
 		if (value == null)
 			return null;
 		try {
 			Boolean out = Boolean.parseBoolean(value);
 			return out;
 		} catch (NumberFormatException e) {
+			return null;
+		}
+	}
+
+	<T extends Enum<T>> T getEnum(Properties prop, Class<T> c) {
+		String value = this.getProperty(prop);
+		System.out.println(value);
+		try {
+			return Enum.valueOf(c, value);
+		} catch (ClassCastException e) {
 			return null;
 		}
 	}
