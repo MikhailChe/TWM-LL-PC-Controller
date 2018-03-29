@@ -1,5 +1,7 @@
 package starthere;
 
+import java.util.concurrent.TimeUnit;
+
 public interface SettingsHolder {
 
 	int getInitialTemperature();
@@ -15,5 +17,11 @@ public interface SettingsHolder {
 	String getSerialPortName();
 
 	double getExperimentFrequency();
+
+	double getStabilizationDegrees();
+
+	int getStabilizationTime();
+
+	TimeUnit getStabilizationTimeUnit();
 
 }

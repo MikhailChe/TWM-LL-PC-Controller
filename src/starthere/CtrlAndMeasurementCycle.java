@@ -17,7 +17,7 @@ import unidaq.UniDAQLib.ADC;
 import unidaq.UniDAQLib.DAC;
 import unidaq.UniDaqException;
 
-public class Measurement implements Runnable {
+public class CtrlAndMeasurementCycle implements Runnable {
 	final SettingsHolder settings;
 	final ControlLoop ctrlLoop;
 
@@ -30,59 +30,52 @@ public class Measurement implements Runnable {
 
 	public synchronized static void measurementControl(SettingsHolder settings, boolean start) {
 		if (start) {
-			if (running != null) {
-				if (running.isAlive()) {
-					running.interrupt();
-					log().println("Waiting for measurements to finish");
-					try {
-						TimeUnit.SECONDS.timedJoin(running, 10);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-					if (running.isAlive()) {
-						log().println("No success. Thread is still running");
-					} else {
-						log().println("Measurements finished");
-					}
-				} else {
-					log().println("Measurements finished");
-				}
-			}
-			Measurement m = new Measurement(settings);
+			tryToStopMeasurementsIfRunning(TimeUnit.SECONDS, 10);
+			CtrlAndMeasurementCycle m = new CtrlAndMeasurementCycle(settings);
 			running = new Thread(m);
 			log().println("Starting new measurements");
 			running.start();
 		} else {
-			if (running != null) {
-				if (running.isAlive()) {
-					running.interrupt();
-					log().println("Waiting for measurements to finish");
-					try {
-						TimeUnit.SECONDS.timedJoin(running, 10);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-					if (running.isAlive()) {
-						log().println("No success. Thread is still running");
-					} else {
-						log().println("Measurements finished");
-					}
-				} else {
-					log().println("Measurements finished");
-				}
-			}
-
+			tryToStopMeasurementsIfRunning(TimeUnit.SECONDS, 10);
 		}
 	}
 
-	public Measurement(SettingsHolder settings) {
+	private synchronized static boolean tryToStopMeasurementsIfRunning(TimeUnit timeunit, int timeout) {
+		if (running == null)
+			return true;
+		if (running.isAlive()) {
+			running.interrupt();
+			log().println("Waiting for measurements to finish");
+			try {
+				timeunit.timedJoin(running, timeout);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			if (running.isAlive()) {
+				log().println("No success. Thread is still running");
+				return false;
+			}
+			log().println("Measurements finished");
+			return true;
+		}
+		log().println("Measurements finished");
+		return true;
+	}
+
+	public synchronized static void manualMeasurements(SettingsHolder settings) {
+
+	}
+
+	public CtrlAndMeasurementCycle(SettingsHolder settings) {
 		this.settings = settings;
 
 		ADC = StartHere.ADC;
 		DAC = StartHere.DAC;
 
 		outputSlopeLimit = new SlopeLimiter(1, 0);
-		regulator = new PID(.04, 1 / 100.0, .1).setProportionalBounds(-5, 5).setIntegralBounds(-5, 5)
+		regulator = new PID(.04, 1 / 100.0, .1)
+				.setProportionalBounds(-5, 5)
+				.setIntegralBounds(-5, 5)
 				.setDifferentialBounds(-.5, .5);
 
 		ctrlLoop = new ControlLoop(settings.getInitialTemperature(), 3, TimeUnit.SECONDS, 5, regulator,
