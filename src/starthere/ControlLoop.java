@@ -5,7 +5,6 @@ import static starthere.ControlLoop.ReturnStatus.OK;
 
 import java.io.File;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 
 import filter.LowPass;
 import model.thermocouple.graduate.Graduate;
@@ -24,9 +23,7 @@ import unidaq.UniDaqException;
 public class ControlLoop implements Callable<ReturnStatus> {
 
 	double SETTED_VALUE;
-	final double DEVIATION;
-	final TimeUnit timeUnit;
-	final long settlingTimeMillis;
+	final SettingsHolder settings;
 	final PID regulator;
 	final SlopeLimiter outputSlopeLimit;
 	final ADC ADC;
@@ -43,13 +40,10 @@ public class ControlLoop implements Callable<ReturnStatus> {
 	static LowPass temperatureStabFilter = new LowPass(LowPass.FrequencyToRC(5));
 	static LowPass errorFilter = new LowPass(LowPass.FrequencyToRC(20));
 
-	public ControlLoop(final double SETTED_VALUE, final double DEVIATION, final TimeUnit timeUnit,
-			final long settlingTimeMillis, final PID regulator, final SlopeLimiter outputSlopeLimit, final ADC ADC,
-			final DAC DAC) {
-		this.SETTED_VALUE = SETTED_VALUE;
-		this.DEVIATION = DEVIATION;
-		this.timeUnit = timeUnit;
-		this.settlingTimeMillis = settlingTimeMillis;
+	public ControlLoop(final SettingsHolder settings, final PID regulator, final SlopeLimiter outputSlopeLimit,
+			final ADC ADC, final DAC DAC) {
+		this.settings = settings;
+		this.SETTED_VALUE = settings.getInitialTemperature();
 		this.regulator = regulator;
 		this.outputSlopeLimit = outputSlopeLimit;
 		this.ADC = ADC;
@@ -110,10 +104,12 @@ public class ControlLoop implements Callable<ReturnStatus> {
 					}
 				}
 
-				if (Math.abs(SETTED_VALUE - temperatureStabFilter.getValue()) > Math.abs(DEVIATION)) {
+				if (Math.abs(SETTED_VALUE - temperatureStabFilter.getValue()) > Math
+						.abs(settings.getStabilizationDegrees())) {
 					insideSettedRegionTime = CURRENTTIME;
 				} else {
-					if ((CURRENTTIME - insideSettedRegionTime) > timeUnit.toMillis(settlingTimeMillis)) {
+					if ((CURRENTTIME - insideSettedRegionTime) > settings.getStabilizationTimeUnit()
+							.toMillis(settings.getStabilizationTime())) {
 						return OK;
 					}
 				}

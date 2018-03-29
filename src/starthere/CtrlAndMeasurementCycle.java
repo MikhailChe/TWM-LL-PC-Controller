@@ -74,10 +74,10 @@ public class CtrlAndMeasurementCycle implements Runnable {
 		DAC = StartHere.DAC;
 
 		outputSlopeLimit = new SlopeLimiter(1, 0);
-		regulator = new PID(.04, 1 / 100.0, .1).setProportionalBounds(-5, 5).setIntegralBounds(-5, 5)
+		regulator = new PID(.07, 1 / 100.0, .1).setProportionalBounds(-5, 5).setIntegralBounds(-.1, 5)
 				.setDifferentialBounds(-.5, .5);
 
-		ctrlLoop = new ControlLoop(settings.getInitialTemperature(), 3, TimeUnit.SECONDS, 5, regulator,
+		ctrlLoop = new ControlLoop(settings,regulator,
 				outputSlopeLimit, ADC, DAC);
 	}
 
@@ -132,11 +132,11 @@ public class CtrlAndMeasurementCycle implements Runnable {
 					kelvins -= settings.getTemperatureStep();
 				}
 
-				if (kelvins > settings.getMaxTemeprature()) {
+				if (kelvins >= settings.getMaxTemeprature()) {
 					goingUp = false;
 					log().println("Lowering temperature");
 				}
-				if (kelvins < settings.getMinTemperature()) {
+				if (kelvins <= settings.getMinTemperature()) {
 					goingUp = true;
 					log().println("Rising temperature");
 				}
