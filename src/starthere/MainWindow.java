@@ -444,10 +444,6 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		centerPanel.add(displayTemperature, BorderLayout.NORTH);
 	}
 
-	protected JSpinner getServoFrequencyHzSpinner() {
-		return servoFrequencyHzSpinner;
-	}
-
 	@Override
 	public int getInitialTemperature() {
 		return ((Number) getInitTemperatureSpinner().getValue()).intValue();
@@ -481,6 +477,11 @@ public class MainWindow extends JFrame implements SettingsHolder {
 	@Override
 	public double getExperimentFrequency() {
 		return ((Number) getServoFrequencyHzSpinner().getValue()).doubleValue();
+	}
+
+	// Exposed GUI components //
+	protected JSpinner getServoFrequencyHzSpinner() {
+		return servoFrequencyHzSpinner;
 	}
 
 	public JSpinner getInitTemperatureSpinner() {
