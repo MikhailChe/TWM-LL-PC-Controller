@@ -6,6 +6,7 @@ import static starthere.PropertiesNames.CURRENT_MAXIMUM_TEMPERATURE;
 import static starthere.PropertiesNames.CURRENT_MINIMUM_TEMPERATURE;
 import static starthere.PropertiesNames.INITIALLY_UP;
 import static starthere.PropertiesNames.INITIAL_TEMPERATURE;
+import static starthere.PropertiesNames.TEMPERATURE_STABILITY_K;
 import static starthere.PropertiesNames.TEMPERATURE_STEP;
 import static starthere.PropertiesNames.fillDefaults;
 import static starthere.PropertiesNames.saveProperties;
@@ -259,6 +260,12 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		gbc_stabilizationDegreesSpinner.gridy = 0;
 		temperatureStabilizationPanel.add(stabilizationDegreesSpinner, gbc_stabilizationDegreesSpinner);
 
+		stabilizationDegreesSpinner.addChangeListener((e) -> {
+			double newFlag = getStabilizationDegrees();
+			TEMPERATURE_STABILITY_K.putProperty(properties, newFlag);
+			saveProperties(properties);
+		});
+
 		JLabel stabilizationTimeLabel = new JLabel("Stabilization time");
 		GridBagConstraints gbc_stabilizationTimeLabel = new GridBagConstraints();
 		gbc_stabilizationTimeLabel.anchor = GridBagConstraints.EAST;
@@ -275,6 +282,12 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		gbc_stabilizationTimeSpinner.gridx = 1;
 		gbc_stabilizationTimeSpinner.gridy = 1;
 		temperatureStabilizationPanel.add(stabilizationTimeSpinner, gbc_stabilizationTimeSpinner);
+
+		stabilizationTimeSpinner.addChangeListener((e) -> {
+			int newFlag = getStabilizationTime();
+			PropertiesNames.TEMPERATURE_STABILITY_TIME.putProperty(properties, newFlag);
+			saveProperties(properties);
+		});
 
 		JLabel stabilizationTimeUnitLabel = new JLabel("Stabilization time unit");
 		GridBagConstraints gbc_stabilizationTimeUnitLabel = new GridBagConstraints();
@@ -293,6 +306,12 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		gbc_stabilizationTimeUnitCombobox.gridy = 2;
 		temperatureStabilizationPanel.add(stabilizationTimeUnitCombobox, gbc_stabilizationTimeUnitCombobox);
 
+		stabilizationTimeUnitCombobox.addActionListener((e) -> {
+			TimeUnit newFlag = getStabilizationTimeUnit();
+			PropertiesNames.TEMPERATURE_STABILITY_TIMEUNIT.putProperty(properties, newFlag);
+			saveProperties(properties);
+		});
+
 		JPanel experimentStartStopPanel = new JPanel();
 		GridBagConstraints gbc_experimentStartStopPanel = new GridBagConstraints();
 		gbc_experimentStartStopPanel.fill = GridBagConstraints.BOTH;
@@ -310,14 +329,14 @@ public class MainWindow extends JFrame implements SettingsHolder {
 				source.setActionCommand("stop");
 				source.setText("E-Stop");
 				SwingUtilities.invokeLater(() -> {
-					Measurement.measurementControl(MainWindow.this, true);
+					CtrlAndMeasurementCycle.measurementControl(MainWindow.this, true);
 					source.setEnabled(true);
 				});
 			} else if (e.getActionCommand().equals("stop")) {
 				source.setActionCommand("start");
 				source.setText("E-Start");
 				SwingUtilities.invokeLater(() -> {
-					Measurement.measurementControl(MainWindow.this, false);
+					CtrlAndMeasurementCycle.measurementControl(MainWindow.this, false);
 					source.setEnabled(true);
 				});
 			}
@@ -385,6 +404,12 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		servoDriveComPortCombobox.setModel(new DefaultComboBoxModel<>(new String[] { "COM1", "COM2", "COM3", "COM4",
 				"COM5", "COM6", "COM7", "COM8", "COM9", "COM10", "COM11", "COM12" }));
 
+		servoDriveComPortCombobox.addActionListener((e) -> {
+			String newFlag = getSerialPortName();
+			PropertiesNames.SERVODRIVE_COMPORT.putProperty(properties, newFlag);
+			saveProperties(properties);
+		});
+
 		JPanel servoStartStopPanel = new JPanel();
 		GridBagConstraints gbc_servoStartStopPanel = new GridBagConstraints();
 		gbc_servoStartStopPanel.insets = new Insets(8, 8, 8, 8);
@@ -432,6 +457,12 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		servoFrequencyHzSpinner.setModel(new SpinnerNumberModel(1, 1, 30, 1));
 		servoFrequencyHzSpinner.setToolTipText("Частота, Гц");
 		servoStartStopPanel.add(servoFrequencyHzSpinner);
+
+		servoFrequencyHzSpinner.addChangeListener((e) -> {
+			double newFlag = getExperimentFrequency();
+			PropertiesNames.SERVODRIVE_COMPORT.putProperty(properties, newFlag);
+			saveProperties(properties);
+		});
 
 		JPanel centerPanel = new JPanel();
 		getContentPane().add(centerPanel, BorderLayout.CENTER);
@@ -506,5 +537,23 @@ public class MainWindow extends JFrame implements SettingsHolder {
 
 	protected JComboBox<String> getServoDriveComPortCombobox() {
 		return servoDriveComPortCombobox;
+	}
+
+	@Override
+	public double getStabilizationDegrees() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public int getStabilizationTime() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public TimeUnit getStabilizationTimeUnit() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

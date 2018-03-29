@@ -5,27 +5,26 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 enum PropertiesNames {
-	INITIAL_TEMPERATURE("initialTemperature", 490), //
-	ABSOLUTE_MINIMUM_TEMPERATURE("absoluteMinimumTemperature", 300), //
-	ABSOLUTE_MAXIMUM_TEMPERATURE("absoluteMaximumTemperature", 1800), //
-	CURRENT_MINIMUM_TEMPERATURE("currentMinimumTemperature", 480), //
-	CURRENT_MAXIMUM_TEMPERATURE("currentMaximumTemperature", 1650), //
-	TEMPERATURE_STEP("currentTemperatureStep", 10), //
-	INITIALLY_UP("temperatureRegulationInitiallyUp", true);
+	INITIAL_TEMPERATURE(490), //
+	ABSOLUTE_MINIMUM_TEMPERATURE(300), //
+	ABSOLUTE_MAXIMUM_TEMPERATURE(1800), //
+	CURRENT_MINIMUM_TEMPERATURE(480), //
+	CURRENT_MAXIMUM_TEMPERATURE(1650), //
+	TEMPERATURE_STEP(10), //
+	INITIALLY_UP(true), //
+	TEMPERATURE_STABILITY_K(3), //
+	TEMPERATURE_STABILITY_TIMEUNIT(TimeUnit.SECONDS), //
+	TEMPERATURE_STABILITY_TIME(4), //
+	SERVODRIVE_COMPORT("COM1"), //
+	SERVIDRIVE_FREQUENCY(5);
 
-	private String name;
 	private Object defaultValue;
 
-	PropertiesNames(String name, Object defaultValue) {
-		this.name = name;
+	PropertiesNames(Object defaultValue) {
 		this.defaultValue = defaultValue;
-	}
-
-	@Override
-	public String toString() {
-		return name;
 	}
 
 	static void fillDefaults(Properties prop) {
@@ -35,16 +34,20 @@ enum PropertiesNames {
 	}
 
 	<T extends Object> void computeIfAbsent(Properties prop, T value) {
-		prop.computeIfAbsent(this.toString(), (s) -> value.toString());
+		prop.computeIfAbsent(this.name(), (s) -> value.toString());
 	}
 
 	<T extends Object> T putProperty(Properties prop, T value) {
-		prop.put(this.toString(), value.toString());
+		prop.put(this.name(), value.toString());
 		return value;
 	}
 
+	Object getProperty(Properties prop) {
+		return prop.getProperty(this.name());
+	}
+
 	Integer getIntegerProperty(Properties prop) {
-		String value = prop.getProperty(this.toString());
+		String value = prop.getProperty(this.name());
 		if (value == null)
 			return null;
 		try {
@@ -63,7 +66,7 @@ enum PropertiesNames {
 	}
 
 	Boolean getBooleanProperty(Properties prop) {
-		String value = prop.getProperty(this.toString());
+		String value = prop.getProperty(this.name());
 		if (value == null)
 			return null;
 		try {
