@@ -239,7 +239,7 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		gbc_initiallyUpCheckbox.gridy = 4;
 		temperatureRegulationPanel.add(initiallyUpCheckbox, gbc_initiallyUpCheckbox);
 
-		initiallyUpCheckbox.addChangeListener((e) -> {
+		initiallyUpCheckbox.addActionListener((e) -> {
 			boolean newFlag = isInitiallyUp();
 			INITIALLY_UP.putProperty(properties, newFlag);
 			saveProperties(properties);
