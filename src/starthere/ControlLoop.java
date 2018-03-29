@@ -8,7 +8,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import filter.LowPass;
-import log.GuiLogger;
 import model.thermocouple.graduate.Graduate;
 import model.thermocouple.graduate.GraduateFactory;
 import regulator.PID;
@@ -16,6 +15,7 @@ import regulator.SlopeLimiter;
 import starthere.ControlLoop.ReturnStatus;
 import starthere.StartHere.TriFunction;
 import starthere.widgets.TemperatureDisplay;
+import starthere.widgets.log.GuiLogger;
 import unidaq.ChannelConfig;
 import unidaq.UniDAQLib.ADC;
 import unidaq.UniDAQLib.DAC;

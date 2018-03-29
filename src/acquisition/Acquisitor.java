@@ -1,7 +1,7 @@
 package acquisition;
 
-import static log.GuiLogger.log;
 import static starthere.StartHere.ADC;
+import static starthere.widgets.log.GuiLogger.log;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
