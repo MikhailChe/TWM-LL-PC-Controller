@@ -27,7 +27,6 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import javax.swing.AbstractButton;
-import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -57,7 +56,7 @@ public class MainWindow extends JFrame implements SettingsHolder {
 	private JComboBox<String> servoDriveComPortCombobox;
 
 	public MainWindow() {
-
+		super("TWM");
 		Properties properties = new Properties();
 		try (FileInputStream propFile = new FileInputStream("MainWindow.properties")) {
 			properties.load(propFile);
@@ -467,10 +466,10 @@ public class MainWindow extends JFrame implements SettingsHolder {
 
 		JPanel centerPanel = new JPanel();
 		getContentPane().add(centerPanel, BorderLayout.CENTER);
-		centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+		centerPanel.setLayout(new BorderLayout(8, 8));
 
 		JPanel loggerPanel = log().createLogger();
-		centerPanel.add(loggerPanel);
+		centerPanel.add(loggerPanel, BorderLayout.CENTER);
 
 		JPanel displayTemperature = TemperatureDisplay.instance().createDisplay();
 		centerPanel.add(displayTemperature, BorderLayout.NORTH);
