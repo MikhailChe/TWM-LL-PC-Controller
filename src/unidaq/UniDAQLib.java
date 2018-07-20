@@ -122,7 +122,7 @@ public class UniDAQLib implements AutoCloseable {
 			}
 		}
 
-		public float[] pollingAIScan(short[] channels, short[] channelConfig, int dataCountPerChannel)
+		private float[] pollingAIScan(short[] channels, short[] channelConfig, int dataCountPerChannel)
 				throws UniDaqException {
 			if (channels.length != channelConfig.length) {
 				throw new IllegalArgumentException("Channel configuration is not specified for all channels");
@@ -144,6 +144,14 @@ public class UniDAQLib implements AutoCloseable {
 				throw new UniDaqException(error);
 			}
 			return values;
+		}
+
+		public float[] pollingAIScan(short[] channels, ChannelConfig[] channelConfig, int dataCountPerChannel) {
+			short[] config = new short[channelConfig.length];
+			for (int i = 0; i < channelConfig.length; i++) {
+				config[i] = channelConfig[i].getConfigValue();
+			}
+			return pollingAIScan(channels, config, dataCountPerChannel);
 		}
 
 		/**

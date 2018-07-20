@@ -160,9 +160,10 @@ public class ControlLoop implements Callable<ReturnStatus> {
 
 	private float[] adcRead(short[] channels, ChannelConfig[] configEnum) throws UniDaqException {
 		ADC.clearAIBuffer();
-		ADC.startAIScan(channels, configEnum, 400, 1);
-		float[] inputValues = ADC.getAIBuffer(channels.length);
-		ADC.stopAI();
+		float[] inputValues = ADC.pollingAIScan(channels, configEnum, 1);
+		// ADC.startAIScan(channels, configEnum, 400, 1);
+		// float[] inputValues = ADC.getAIBuffer(channels.length);
+		// ADC.stopAI();
 		return inputValues;
 	}
 

@@ -6,12 +6,12 @@ import static starthere.PropertiesNames.CURRENT_MAXIMUM_TEMPERATURE;
 import static starthere.PropertiesNames.CURRENT_MINIMUM_TEMPERATURE;
 import static starthere.PropertiesNames.INITIALLY_UP;
 import static starthere.PropertiesNames.INITIAL_TEMPERATURE;
+import static starthere.PropertiesNames.NUMBER_OF_PERIODS_PER_MEASURE;
 import static starthere.PropertiesNames.TEMPERATURE_STABILITY_K;
 import static starthere.PropertiesNames.TEMPERATURE_STEP;
 import static starthere.PropertiesNames.fillDefaults;
 import static starthere.PropertiesNames.saveProperties;
 import static starthere.StartHere.Acquisitor;
-import static starthere.widgets.log.GuiLogger.log;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -46,6 +46,8 @@ import gnu.io.PortInUseException;
 import starthere.widgets.TemperatureDisplay;
 import unidaq.UniDaqException;
 
+import static starthere.widgets.log.GuiLogger.log;
+
 public class MainWindow extends JFrame implements SettingsHolder {
 	private JSpinner servoFrequencyHzSpinner;
 	private JSpinner initTemperatureSpinner;
@@ -57,6 +59,7 @@ public class MainWindow extends JFrame implements SettingsHolder {
 	private JSpinner stabilizationDegreesSpinner;
 	private JSpinner stabilizationTimeSpinner;
 	private JComboBox<TimeUnit> stabilizationTimeUnitCombobox;
+	private JSpinner numberOfPeriodsPerMeasureSpinner;
 
 	public MainWindow() {
 		super("TWM");
@@ -69,6 +72,9 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		fillDefaults(properties);
 		saveProperties(properties);
 
+		/*
+		 **** ИНИЦИАЛИЗАЦИЯ СВОЙСТВ ИЗ ФАЙЛА ***
+		 ***************************************/
 		final int initialTemperature = INITIAL_TEMPERATURE.getIntegerProperty(properties);
 		final int absoluteMinimumTemperature = ABSOLUTE_MINIMUM_TEMPERATURE.getIntegerProperty(properties);
 		final int absoluteMaximumTemperature = ABSOLUTE_MAXIMUM_TEMPERATURE.getIntegerProperty(properties);
@@ -76,34 +82,40 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		final int currentMaximumTemperature = CURRENT_MAXIMUM_TEMPERATURE.getIntegerProperty(properties);
 		final int temperatureStep = TEMPERATURE_STEP.getIntegerProperty(properties);
 		final boolean isInitiallyUp = INITIALLY_UP.getBooleanProperty(properties);
-		/*
-		 * TEMPERATURE_STABILITY_K(3), //
-		 * TEMPERATURE_STABILITY_TIMEUNIT(TimeUnit.SECONDS), //
-		 * 
-		 * TEMPERATURE_STABILITY_TIME(4), // SERVODRIVE_COMPORT("COM1"), //
-		 * SERVIDRIVE_FREQUENCY(5);
-		 */
+
 		final double temperatureStabilityK = PropertiesNames.TEMPERATURE_STABILITY_K.getDoubleProperty(properties);
 		final int temperatureStabilityTime = PropertiesNames.TEMPERATURE_STABILITY_TIME.getIntegerProperty(properties);
 		final TimeUnit temperatureStabilityTimeunit = PropertiesNames.TEMPERATURE_STABILITY_TIMEUNIT.getEnum(properties,
 				TimeUnit.class);
 		System.out.println(temperatureStabilityTimeunit);
 
+		final int numberOfPeriodsPerMeasure = NUMBER_OF_PERIODS_PER_MEASURE.getIntegerProperty(properties);
+
 		final String servoComPort = PropertiesNames.SERVODRIVE_COMPORT.getProperty(properties);
 		final double servoFrequency = PropertiesNames.SERVODRIVE_FREQUENCY.getDoubleProperty(properties);
 
+		/*
+		 ***** СТРОИМ GUI *****
+		 **********************/
+
+		/*
+		 **** ЛЕВАЯ ПАНЕЛЬ ***
+		 *********************/
 		JPanel leftPanel = new JPanel();
 		leftPanel.setBorder(new TitledBorder(
 				new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)),
 				"Experiment control", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(0, 0, 0)));
 		getContentPane().add(leftPanel, BorderLayout.WEST);
 		GridBagLayout gbl_leftPanel = new GridBagLayout();
-		gbl_leftPanel.columnWidths = new int[] { 0, 0 };
-		gbl_leftPanel.rowHeights = new int[] { 144, 0, 0, 0 };
-		gbl_leftPanel.columnWeights = new double[] { 0.0, Double.MIN_VALUE };
-		gbl_leftPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, Double.MIN_VALUE };
+		// gbl_leftPanel.columnWidths = new int[] { 0, 0 };
+		// gbl_leftPanel.rowHeights = new int[] { 144, 0, 0, 0, 0, 0 };
+		// gbl_leftPanel.columnWeights = new double[] { 0.0, Double.MIN_VALUE };
+		// gbl_leftPanel.rowWeights = new double[] { 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		leftPanel.setLayout(gbl_leftPanel);
 
+		/*
+		 * *** ПАНЕЛЬ РЕГУЛИРОВКИ ТЕМПЕРАТУРЫ ***
+		 ****************************************/
 		JPanel temperatureRegulationPanel = new JPanel();
 		GridBagConstraints gbc_temperatureRegulationPanel = new GridBagConstraints();
 		gbc_temperatureRegulationPanel.fill = GridBagConstraints.BOTH;
@@ -332,11 +344,56 @@ public class MainWindow extends JFrame implements SettingsHolder {
 			saveProperties(properties);
 		});
 
+		/*
+		 * *** ПАНЕЛЬ УПРАВЛЕНИЯ ПРОЦЕССОМ ИЗМЕРЕНИЯ ***
+		 *********************************************/
+		JPanel measurementControlPanel = new JPanel();
+		GridBagConstraints gbc_measurementControlPanel = new GridBagConstraints();
+		gbc_measurementControlPanel.fill = GridBagConstraints.BOTH;
+		gbc_measurementControlPanel.insets = new Insets(0, 0, 5, 0);
+		gbc_measurementControlPanel.gridx = 0;
+		gbc_measurementControlPanel.gridy = 2;
+		leftPanel.add(measurementControlPanel, gbc_measurementControlPanel);
+		measurementControlPanel.setBorder(new TitledBorder(
+				new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)),
+				"Measurement Control", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(0, 0, 0)));
+		GridBagLayout gbl_measurementControlPanel = new GridBagLayout();
+		
+		gbl_measurementControlPanel.columnWeights = new double[] { 0.0, 1.0 };
+		measurementControlPanel.setLayout(gbl_measurementControlPanel);
+
+		JLabel numberOfPeriodsPerMeasureLabel = new JLabel("n-periods");
+
+		GridBagConstraints gbc_numberOfPeriodsPerMeasureLabel = new GridBagConstraints();
+		gbc_numberOfPeriodsPerMeasureLabel.insets = new Insets(0, 0, 5, 5);
+		gbc_numberOfPeriodsPerMeasureLabel.anchor = GridBagConstraints.EAST;
+		gbc_numberOfPeriodsPerMeasureLabel.gridx = 0;
+		gbc_numberOfPeriodsPerMeasureLabel.gridy = 0;
+		measurementControlPanel.add(numberOfPeriodsPerMeasureLabel, gbc_numberOfPeriodsPerMeasureLabel);
+
+		numberOfPeriodsPerMeasureSpinner = new JSpinner();
+		numberOfPeriodsPerMeasureSpinner.setModel(new SpinnerNumberModel(numberOfPeriodsPerMeasure, 8, 256, 2));
+		GridBagConstraints gbc_numberOfPeriodsPerMeasureSpinner = new GridBagConstraints();
+		gbc_numberOfPeriodsPerMeasureSpinner.fill = GridBagConstraints.BOTH;
+		gbc_numberOfPeriodsPerMeasureSpinner.insets = new Insets(0, 0, 5, 0);
+		gbc_numberOfPeriodsPerMeasureSpinner.gridx = 1;
+		gbc_numberOfPeriodsPerMeasureSpinner.gridy = 0;
+		measurementControlPanel.add(numberOfPeriodsPerMeasureSpinner, gbc_numberOfPeriodsPerMeasureSpinner);
+
+		numberOfPeriodsPerMeasureSpinner.addChangeListener((e) -> {
+			int newPeriods = (int) numberOfPeriodsPerMeasureSpinner.getValue();
+			NUMBER_OF_PERIODS_PER_MEASURE.putProperty(properties, newPeriods);
+			saveProperties(properties);
+		});
+
+		/*
+		 * ПАНЕЛЬ ЗАПУСКА И ОСТАНОВА ЭКСПЕРИМЕНТА
+		 */
 		JPanel experimentStartStopPanel = new JPanel();
 		GridBagConstraints gbc_experimentStartStopPanel = new GridBagConstraints();
 		gbc_experimentStartStopPanel.fill = GridBagConstraints.BOTH;
 		gbc_experimentStartStopPanel.gridx = 0;
-		gbc_experimentStartStopPanel.gridy = 2;
+		gbc_experimentStartStopPanel.gridy = 3;
 		leftPanel.add(experimentStartStopPanel, gbc_experimentStartStopPanel);
 		experimentStartStopPanel.setLayout(new GridLayout(1, 0, 0, 0));
 
@@ -546,6 +603,11 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		return (TimeUnit) getStabilizationTimeUnitCombobox().getSelectedItem();
 	}
 
+	@Override
+	public int getNumberOfPeriodsPerMeasure() {
+		return ((Number) getNumberOfPeriodsPerMeasureSpinner().getValue()).intValue();
+	}
+
 	// Exposed GUI components //
 	protected JSpinner getServoFrequencyHzSpinner() {
 		return servoFrequencyHzSpinner;
@@ -585,5 +647,9 @@ public class MainWindow extends JFrame implements SettingsHolder {
 
 	protected JComboBox<TimeUnit> getStabilizationTimeUnitCombobox() {
 		return stabilizationTimeUnitCombobox;
+	}
+
+	protected JSpinner getNumberOfPeriodsPerMeasureSpinner() {
+		return numberOfPeriodsPerMeasureSpinner;
 	}
 }

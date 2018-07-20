@@ -8,6 +8,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.TimeUnit;
@@ -82,8 +83,11 @@ public class Acquisitor {
 				ps.println();
 			}
 		}
+
 		try {
-			Files.write(Paths.get(filename), baos.toByteArray(), StandardOpenOption.CREATE_NEW);
+			Path path = Paths.get("data", filename);
+			Files.createDirectories(path.getParent());
+			Files.write(path, baos.toByteArray(), StandardOpenOption.CREATE_NEW);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -105,6 +109,7 @@ public class Acquisitor {
 			for (int i = 0; i < configuration.length; i++) {
 				configuration[i] = ChannelConfig.BI_10V;
 			}
+			ADC.clearAIBuffer();
 			ADC.startAIScan(channels, configuration, sampleFrequency, samplesPerChannel);
 			// read in part no longer than .5s
 			int totalSamples = samplesPerChannel * NUM_CHANNELS;

@@ -24,4 +24,6 @@ public interface SettingsHolder {
 
 	TimeUnit getStabilizationTimeUnit();
 
+	int getNumberOfPeriodsPerMeasure();
+
 }

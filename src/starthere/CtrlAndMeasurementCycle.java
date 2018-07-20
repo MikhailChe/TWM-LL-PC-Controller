@@ -73,12 +73,11 @@ public class CtrlAndMeasurementCycle implements Runnable {
 		ADC = StartHere.ADC;
 		DAC = StartHere.DAC;
 
-		outputSlopeLimit = new SlopeLimiter(1, 0);
-		regulator = new PID(.07, 1 / 100.0, .1).setProportionalBounds(-5, 5).setIntegralBounds(-.1, 5)
+		outputSlopeLimit = new SlopeLimiter(.5, 0);
+		regulator = new PID(.02, 1 / 200.0, .1).setProportionalBounds(-5, 5).setIntegralBounds(-.1, 5)
 				.setDifferentialBounds(-.5, .5);
 
-		ctrlLoop = new ControlLoop(settings,regulator,
-				outputSlopeLimit, ADC, DAC);
+		ctrlLoop = new ControlLoop(settings, regulator, outputSlopeLimit, ADC, DAC);
 	}
 
 	@Override
@@ -113,17 +112,20 @@ public class CtrlAndMeasurementCycle implements Runnable {
 					GuiLogger.log().println("Control loop returned state " + controlLoopReturnStatus);
 					break;
 				}
-				// *****MEASURE ****///
-				// TODO: number of periods should come from SettingsHolder
-				log().println("Measuring channels for 64 periods");
-				try {
-					Acquisitor.setupReadAndPrintExperiment(new short[] { 0, 2, 4, 6 },
-							settings.getExperimentFrequency(), 64);
-				} catch (FileNotFoundException | NoSuchPortException | PortInUseException e) {
-					e.printStackTrace();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-					break;
+				for (int i = 0; i < 2; i++) {
+					// *****MEASURE ****///
+					// TODO: number of periods should come from SettingsHolder
+					final int numberOfPeriods = settings.getNumberOfPeriodsPerMeasure();
+					log().println("Measuring channels for " + numberOfPeriods + " periods");
+					try {
+						Acquisitor.setupReadAndPrintExperiment(new short[] { 0, 2, 4, 6 },
+								settings.getExperimentFrequency(), numberOfPeriods);
+					} catch (FileNotFoundException | NoSuchPortException | PortInUseException e) {
+						e.printStackTrace();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+						break;
+					}
 				}
 
 				if (goingUp) {
