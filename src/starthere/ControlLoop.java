@@ -6,11 +6,11 @@ import static starthere.ControlLoop.ReturnStatus.OK;
 import java.io.File;
 import java.util.concurrent.Callable;
 
-import filter.LowPass;
 import model.thermocouple.graduate.Graduate;
 import model.thermocouple.graduate.GraduateFactory;
 import regulator.PID;
 import regulator.SlopeLimiter;
+import regulator.filter.LowPass;
 import starthere.ControlLoop.ReturnStatus;
 import starthere.StartHere.TriFunction;
 import starthere.widgets.TemperatureDisplay;

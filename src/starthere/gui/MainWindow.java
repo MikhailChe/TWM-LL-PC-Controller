@@ -1,17 +1,18 @@
-package starthere;
+package starthere.gui;
 
-import static starthere.PropertiesNames.ABSOLUTE_MAXIMUM_TEMPERATURE;
-import static starthere.PropertiesNames.ABSOLUTE_MINIMUM_TEMPERATURE;
-import static starthere.PropertiesNames.CURRENT_MAXIMUM_TEMPERATURE;
-import static starthere.PropertiesNames.CURRENT_MINIMUM_TEMPERATURE;
-import static starthere.PropertiesNames.INITIALLY_UP;
-import static starthere.PropertiesNames.INITIAL_TEMPERATURE;
-import static starthere.PropertiesNames.NUMBER_OF_PERIODS_PER_MEASURE;
-import static starthere.PropertiesNames.TEMPERATURE_STABILITY_K;
-import static starthere.PropertiesNames.TEMPERATURE_STEP;
-import static starthere.PropertiesNames.fillDefaults;
-import static starthere.PropertiesNames.saveProperties;
+import static starthere.ExperimentProperties.ABSOLUTE_MAXIMUM_TEMPERATURE;
+import static starthere.ExperimentProperties.ABSOLUTE_MINIMUM_TEMPERATURE;
+import static starthere.ExperimentProperties.CURRENT_MAXIMUM_TEMPERATURE;
+import static starthere.ExperimentProperties.CURRENT_MINIMUM_TEMPERATURE;
+import static starthere.ExperimentProperties.INITIALLY_UP;
+import static starthere.ExperimentProperties.INITIAL_TEMPERATURE;
+import static starthere.ExperimentProperties.NUMBER_OF_PERIODS_PER_MEASURE;
+import static starthere.ExperimentProperties.TEMPERATURE_STABILITY_K;
+import static starthere.ExperimentProperties.TEMPERATURE_STEP;
+import static starthere.ExperimentProperties.fillDefaults;
+import static starthere.ExperimentProperties.saveProperties;
 import static starthere.StartHere.Acquisitor;
+import static starthere.widgets.log.GuiLogger.log;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -21,10 +22,13 @@ import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import javax.swing.AbstractButton;
 import javax.swing.DefaultComboBoxModel;
@@ -33,20 +37,23 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
+import javax.swing.WindowConstants;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
 
 import asdaservo.ServoController;
 import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
+import starthere.CtrlAndMeasurementCycle;
+import starthere.ExperimentProperties;
+import starthere.SettingsHolder;
 import starthere.widgets.TemperatureDisplay;
 import unidaq.UniDaqException;
-
-import static starthere.widgets.log.GuiLogger.log;
 
 public class MainWindow extends JFrame implements SettingsHolder {
 	private JSpinner servoFrequencyHzSpinner;
@@ -62,12 +69,13 @@ public class MainWindow extends JFrame implements SettingsHolder {
 	private JSpinner numberOfPeriodsPerMeasureSpinner;
 
 	public MainWindow() {
-		super("TWM");
+		super("TWM-RegulatorAcquisitor");
 		Properties properties = new Properties();
 		try (FileInputStream propFile = new FileInputStream("MainWindow.properties")) {
 			properties.load(propFile);
 		} catch (Exception e) {
 			System.err.println("Properties file was not found. Loading defaults");
+			log().println("Properties file was not found. Loading defaults");
 		}
 		fillDefaults(properties);
 		saveProperties(properties);
@@ -83,16 +91,17 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		final int temperatureStep = TEMPERATURE_STEP.getIntegerProperty(properties);
 		final boolean isInitiallyUp = INITIALLY_UP.getBooleanProperty(properties);
 
-		final double temperatureStabilityK = PropertiesNames.TEMPERATURE_STABILITY_K.getDoubleProperty(properties);
-		final int temperatureStabilityTime = PropertiesNames.TEMPERATURE_STABILITY_TIME.getIntegerProperty(properties);
-		final TimeUnit temperatureStabilityTimeunit = PropertiesNames.TEMPERATURE_STABILITY_TIMEUNIT.getEnum(properties,
-				TimeUnit.class);
+		final double temperatureStabilityK = ExperimentProperties.TEMPERATURE_STABILITY_K.getDoubleProperty(properties);
+		final int temperatureStabilityTime = ExperimentProperties.TEMPERATURE_STABILITY_TIME
+				.getIntegerProperty(properties);
+		final TimeUnit temperatureStabilityTimeunit = ExperimentProperties.TEMPERATURE_STABILITY_TIMEUNIT
+				.getEnum(properties, TimeUnit.class);
 		System.out.println(temperatureStabilityTimeunit);
 
 		final int numberOfPeriodsPerMeasure = NUMBER_OF_PERIODS_PER_MEASURE.getIntegerProperty(properties);
 
-		final String servoComPort = PropertiesNames.SERVODRIVE_COMPORT.getProperty(properties);
-		final double servoFrequency = PropertiesNames.SERVODRIVE_FREQUENCY.getDoubleProperty(properties);
+		final String servoComPort = ExperimentProperties.SERVODRIVE_COMPORT.getProperty(properties);
+		final double servoFrequency = ExperimentProperties.SERVODRIVE_FREQUENCY.getDoubleProperty(properties);
 
 		/*
 		 ***** СТРОИМ GUI *****
@@ -315,7 +324,7 @@ public class MainWindow extends JFrame implements SettingsHolder {
 
 		stabilizationTimeSpinner.addChangeListener((e) -> {
 			int newFlag = getStabilizationTime();
-			PropertiesNames.TEMPERATURE_STABILITY_TIME.putProperty(properties, newFlag);
+			ExperimentProperties.TEMPERATURE_STABILITY_TIME.putProperty(properties, newFlag);
 			saveProperties(properties);
 		});
 
@@ -340,7 +349,7 @@ public class MainWindow extends JFrame implements SettingsHolder {
 			TimeUnit newFlag = getStabilizationTimeUnit();
 			System.out.println("Putting time unit: " + newFlag.name());
 
-			PropertiesNames.TEMPERATURE_STABILITY_TIMEUNIT.putProperty(properties, newFlag);
+			ExperimentProperties.TEMPERATURE_STABILITY_TIMEUNIT.putProperty(properties, newFlag);
 			saveProperties(properties);
 		});
 
@@ -358,7 +367,7 @@ public class MainWindow extends JFrame implements SettingsHolder {
 				new EtchedBorder(EtchedBorder.LOWERED, new Color(255, 255, 255), new Color(160, 160, 160)),
 				"Measurement Control", TitledBorder.LEADING, TitledBorder.TOP, null, new Color(0, 0, 0)));
 		GridBagLayout gbl_measurementControlPanel = new GridBagLayout();
-		
+
 		gbl_measurementControlPanel.columnWeights = new double[] { 0.0, 1.0 };
 		measurementControlPanel.setLayout(gbl_measurementControlPanel);
 
@@ -397,29 +406,55 @@ public class MainWindow extends JFrame implements SettingsHolder {
 		leftPanel.add(experimentStartStopPanel, gbc_experimentStartStopPanel);
 		experimentStartStopPanel.setLayout(new GridLayout(1, 0, 0, 0));
 
-		JButton btnStartExperiment = new JButton("E-Start");
+		final JButton btnStartExperiment = new JButton("E-Start");
 		btnStartExperiment.setActionCommand("start");
+
+		Consumer<JButton> makeAStopButton = (source) -> {
+			source.setActionCommand("stop");
+			source.setText("E-Stop");
+		};
+
+		Consumer<JButton> makeAStartButton = (source) -> {
+			source.setActionCommand("start");
+			source.setText("E-Start");
+		};
 		btnStartExperiment.addActionListener((e) -> {
 			final JButton source = (JButton) e.getSource();
 			source.setEnabled(false);
 			if (e.getActionCommand().equals("start")) {
-				source.setActionCommand("stop");
-				source.setText("E-Stop");
-				SwingUtilities.invokeLater(() -> {
-					CtrlAndMeasurementCycle.measurementControl(MainWindow.this, true);
-					source.setEnabled(true);
-				});
+				if (CtrlAndMeasurementCycle.measurementControl(MainWindow.this, true)) {
+					makeAStopButton.accept(source);
+				}
 			} else if (e.getActionCommand().equals("stop")) {
-				source.setActionCommand("start");
-				source.setText("E-Start");
-				SwingUtilities.invokeLater(() -> {
-					CtrlAndMeasurementCycle.measurementControl(MainWindow.this, false);
-					source.setEnabled(true);
-				});
+				if (CtrlAndMeasurementCycle.measurementControl(MainWindow.this, false)) {
+					makeAStartButton.accept(source);
+				}
 			}
+			source.setEnabled(true);
 		});
 
 		experimentStartStopPanel.add(btnStartExperiment);
+
+		JButton btnSTOPALL = new JButton("Stop");
+		btnSTOPALL.setBackground(Color.RED);
+		btnSTOPALL.addActionListener((e) -> {
+			final JButton source = (JButton) e.getSource();
+			source.setEnabled(false);
+			makeAStopButton.accept(source);
+			btnStartExperiment.setEnabled(false);
+			log().println("PANIC! STOPPING ALL!");
+			CtrlAndMeasurementCycle.blockAndStopAll();
+			try (ServoController servo = new ServoController(getSerialPortName())) {
+				servo.stop();
+			} catch (NoSuchPortException e1) {
+				e1.printStackTrace();
+			} catch (PortInUseException e1) {
+				e1.printStackTrace();
+			}
+			btnStartExperiment.setEnabled(true);
+			source.setEnabled(true);
+		});
+		experimentStartStopPanel.add(btnSTOPALL);
 
 		JButton btnManualMeasure = new JButton("Manual measure");
 		btnManualMeasure.addActionListener((e) -> {
@@ -484,7 +519,7 @@ public class MainWindow extends JFrame implements SettingsHolder {
 
 		servoDriveComPortCombobox.addActionListener((e) -> {
 			String newFlag = getSerialPortName();
-			PropertiesNames.SERVODRIVE_COMPORT.putProperty(properties, newFlag);
+			ExperimentProperties.SERVODRIVE_COMPORT.putProperty(properties, newFlag);
 			saveProperties(properties);
 		});
 
@@ -538,7 +573,7 @@ public class MainWindow extends JFrame implements SettingsHolder {
 
 		servoFrequencyHzSpinner.addChangeListener((e) -> {
 			double newFlag = getExperimentFrequency();
-			PropertiesNames.SERVODRIVE_FREQUENCY.putProperty(properties, newFlag);
+			ExperimentProperties.SERVODRIVE_FREQUENCY.putProperty(properties, newFlag);
 			saveProperties(properties);
 		});
 
@@ -551,6 +586,28 @@ public class MainWindow extends JFrame implements SettingsHolder {
 
 		JPanel displayTemperature = TemperatureDisplay.instance().createDisplay();
 		centerPanel.add(displayTemperature, BorderLayout.NORTH);
+
+		setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+		addWindowListener(new WindowAdapter() {
+			/**
+			 * Invoked when a window is in the process of being closed. The close operation
+			 * can be overridden at this point.
+			 */
+			@Override
+			public void windowClosing(WindowEvent e) {
+				if (CtrlAndMeasurementCycle.isRunning()) {
+					int opt = JOptionPane.showConfirmDialog(MainWindow.this,
+							"Measurements thread is still running.\nDo you really want to exit?", "Close app?",
+							JOptionPane.YES_NO_OPTION);
+					if (JOptionPane.NO_OPTION == opt) {
+						return;
+					}
+				}
+				CtrlAndMeasurementCycle.blockAndStopAll();
+				MainWindow.this.dispose();
+			}
+
+		});
 	}
 
 	@Override

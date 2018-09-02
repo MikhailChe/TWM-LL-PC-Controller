@@ -7,7 +7,7 @@ import java.util.EnumSet;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-enum PropertiesNames {
+public enum ExperimentProperties {
 	INITIAL_TEMPERATURE(490), //
 	ABSOLUTE_MINIMUM_TEMPERATURE(300), //
 	ABSOLUTE_MAXIMUM_TEMPERATURE(1800), //
@@ -19,17 +19,18 @@ enum PropertiesNames {
 	TEMPERATURE_STABILITY_TIMEUNIT(TimeUnit.SECONDS), //
 	TEMPERATURE_STABILITY_TIME(4), //
 	SERVODRIVE_COMPORT("COM1"), //
-	SERVODRIVE_FREQUENCY(5.0),
-	NUMBER_OF_PERIODS_PER_MEASURE(64);
+	SERVODRIVE_FREQUENCY(5.0), //
+	NUMBER_OF_PERIODS_PER_MEASURE(64), //
+	NUMBER_OF_MEASURES_PER_TEMPERATURE_POINT(2);
 
 	private Object defaultValue;
 
-	PropertiesNames(Object defaultValue) {
+	ExperimentProperties(Object defaultValue) {
 		this.defaultValue = defaultValue;
 	}
 
-	static void fillDefaults(Properties prop) {
-		for (PropertiesNames key : EnumSet.allOf(PropertiesNames.class)) {
+	public static void fillDefaults(Properties prop) {
+		for (ExperimentProperties key : EnumSet.allOf(ExperimentProperties.class)) {
 			key.computeIfAbsent(prop, key.defaultValue);
 		}
 	}
@@ -38,7 +39,7 @@ enum PropertiesNames {
 		prop.computeIfAbsent(this.name(), (s) -> value.toString());
 	}
 
-	<T extends Object> void putProperty(Properties prop, T value) {
+	public <T extends Object> void putProperty(Properties prop, T value) {
 		if (value.getClass().getSuperclass().isEnum()) {
 			Enum<?> e = (Enum<?>) value;
 			prop.put(this.name(), e.name());
@@ -50,11 +51,11 @@ enum PropertiesNames {
 		}
 	}
 
-	String getProperty(Properties prop) {
+	public String getProperty(Properties prop) {
 		return prop.getProperty(this.name());
 	}
 
-	Integer getIntegerProperty(Properties prop) {
+	public Integer getIntegerProperty(Properties prop) {
 		String value = this.getProperty(prop);
 		if (value == null)
 			return null;
@@ -73,7 +74,7 @@ enum PropertiesNames {
 		}
 	}
 
-	Double getDoubleProperty(Properties prop) {
+	public Double getDoubleProperty(Properties prop) {
 		String value = this.getProperty(prop);
 		if (value == null)
 			return null;
@@ -92,7 +93,7 @@ enum PropertiesNames {
 		}
 	}
 
-	Boolean getBooleanProperty(Properties prop) {
+	public Boolean getBooleanProperty(Properties prop) {
 		String value = this.getProperty(prop);
 		if (value == null)
 			return null;
@@ -104,7 +105,7 @@ enum PropertiesNames {
 		}
 	}
 
-	<T extends Enum<T>> T getEnum(Properties prop, Class<T> c) {
+	public <T extends Enum<T>> T getEnum(Properties prop, Class<T> c) {
 		String value = this.getProperty(prop);
 		System.out.println(value);
 		try {
@@ -114,7 +115,7 @@ enum PropertiesNames {
 		}
 	}
 
-	static void saveProperties(Properties prop) {
+	public static void saveProperties(Properties prop) {
 		try (FileOutputStream propFile = new FileOutputStream("MainWindow.properties")) {
 			prop.store(propFile, "Properties for temperature regulation and hardware");
 		} catch (FileNotFoundException e) {

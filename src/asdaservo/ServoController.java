@@ -1,6 +1,7 @@
 package asdaservo;
 
 import static java.lang.System.currentTimeMillis;
+import static starthere.widgets.log.GuiLogger.log;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -91,11 +92,17 @@ public class ServoController implements AutoCloseable {
 	SerialPort port = null;
 	boolean portOpened = false;
 
-	public ServoController(String portName) throws NoSuchPortException, PortInUseException {
+	public ServoController(String portName) throws NoSuchPortException, PortInUseException, UnsatisfiedLinkError {
 		this.portName = portName;
 		this.ME = this.getClass().getName();
-		open();
-		close();
+		try {
+			open();
+			close();
+		} catch (UnsatisfiedLinkError e) {
+			log().println("Cannot connect to servo...");
+			log().println(e.getLocalizedMessage());
+			throw e;
+		}
 	}
 
 	public synchronized void open() throws NoSuchPortException, PortInUseException {
@@ -187,7 +194,8 @@ public class ServoController implements AutoCloseable {
 		}
 	}
 
-	private synchronized boolean startStop(final OutputStream out, @SuppressWarnings("unused") final InputStream in, final boolean startNOTstop) {
+	private synchronized boolean startStop(final OutputStream out, @SuppressWarnings("unused") final InputStream in,
+			final boolean startNOTstop) {
 		byte[] pack;
 		try {
 			if (startNOTstop) {

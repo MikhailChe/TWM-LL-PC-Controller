@@ -51,9 +51,14 @@ public class Acquisitor {
 		try (ServoController motor = new ServoController(settings.getSerialPortName())) {
 			motor.writeSpeed(experimentFreq);
 			TimeUnit.SECONDS.sleep(1);
+			if (Thread.interrupted()) {
+				throw new InterruptedException();
+			}
 			double[][] values = readOut(channels, (float) experimentFreq, numPeriods);
 			String filename = String.format("%d.txt", System.currentTimeMillis());
-
+			if (Thread.interrupted()) {
+				throw new InterruptedException();
+			}
 			printData(filename, (float) experimentFreq, values);
 			System.out.println(filename);
 		}

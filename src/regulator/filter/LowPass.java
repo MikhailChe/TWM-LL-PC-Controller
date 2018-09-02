@@ -1,4 +1,4 @@
-package filter;
+package regulator.filter;
 
 public class LowPass {
 	long lastInputTime = Long.MIN_VALUE;

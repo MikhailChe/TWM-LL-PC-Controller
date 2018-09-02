@@ -6,6 +6,7 @@ import java.io.PrintStream;
 import javax.swing.JOptionPane;
 
 import acquisition.Acquisitor;
+import starthere.gui.MainWindow;
 import unidaq.UniDAQLib;
 import unidaq.UniDAQLib.ADC;
 import unidaq.UniDAQLib.DAC;
